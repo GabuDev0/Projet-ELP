@@ -8,15 +8,15 @@ import (
 )
 
 func main() {
-	infile_path := "example-files/scale_sin_C_maj.wav"
-	fmt.Println(infile_path)
-	//flag.Parse()
+	file_path := "example-files/scale_sin_C_maj.wav"
+	fmt.Println(file_path)
 
-	file, _ := os.Open(infile_path)
+	file, _ := os.Open(file_path)
 	reader := wav.NewReader(file)
 
-  	defer file.Close()
-
+	defer file.Close()
+	// For each note, intercorr with the signal
+	var samplesFloat []float64
 	for {
 		samples, err := reader.ReadSamples()
 		if err == io.EOF {
@@ -24,7 +24,16 @@ func main() {
 		}
 
 		for _, sample := range samples {
-			fmt.Printf("L/R: %d/%d\n", reader.IntValue(sample, 0), reader.IntValue(sample, 1))
+			samplesFloat = append(samplesFloat, reader.FloatValue(sample, 0))
+			
+			continue
 		}
 	}
+
+
+	// Create a plot with the samples of note "0" (C0)
+	noteSamplesFloat := get_note_samples(0)
+
+	plotSamplesFromFloats(noteSamplesFloat, "plot_0.jpg")
 }
+
