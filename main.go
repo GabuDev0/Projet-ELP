@@ -15,9 +15,10 @@ func main() {
 	reader := wav.NewReader(file)
 
 	defer file.Close()
-	// For each note, intercorr with the signal
+	// For each note possible (C0-B10), intercorr with the signal
 	var samplesFloat []float64
 	for {
+		// "samples" var is a packet of 2048 samples (if enough samples, otherwise less)
 		samples, err := reader.ReadSamples()
 		if err == io.EOF {
 			break

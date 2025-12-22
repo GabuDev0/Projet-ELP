@@ -8,6 +8,7 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
+// Creates a plot from the samples.
 func plotSamplesFromFloats(samples []float64, filename string) error {
 	p := plot.New()
 	p.Title.Text = "Samples audio"
