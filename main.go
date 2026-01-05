@@ -31,10 +31,5 @@ func main() {
 		}
 	}
 
-	x := []float64{1, 1, 1, 1}
-	y := []float64{2, 1}
-	var noteSamplesFloat []float64 = intercorrelation(x, y)
-	for i := 0; i < len(noteSamplesFloat); i++ {
-		fmt.Println(noteSamplesFloat[i])
-	}
+	testIntercorrelation()
 }
