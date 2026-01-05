@@ -1,34 +1,24 @@
 package main
 
-import "math"
-
-func Intercorreltion(x, y []float64) []float64 {
+func intercorrelation(x, y []float64) []float64 {
+	
 	n := len(x)
 	m := len(y)
 
-	result := make([]float64, n)
+	r := make([]float64, n+m-1)
+	k := 0
 
-	for lag := 0; lag < n; lag++ {
-		sum := 0.0
-		energyX := 0.0
-		energyY := 0.0
-
-		for i := 0; i < n; i++ {
-			j := i - lag
-			if j >= 0 && j < m {
-				sum += x[i] * y[j]
-				energyX += x[i] * x[i]
-				energyY += y[j] * y[i]
+	for lag := -m+1; lag < n; lag++ {
+		var sum float64 = 0
+		for i := 0; i < min(n, m); i++ {
+			// If in the x list
+			if i+lag >= 0 && i+lag < n {
+				sum += x[i+lag] * y[i]
 			}
 		}
-
-		den := math.Sqrt(energyX * energyY)
-		if den > 0 {
-			result[lag] = sum / den
-		} else {
-			result[lag] = 0
-		}
+		r[k] = sum
+		k++
 	}
 
-	return result
+	return r
 }

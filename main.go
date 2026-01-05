@@ -31,10 +31,10 @@ func main() {
 		}
 	}
 
-
-	// Create a plot with the samples of note "0" (C0)
-	noteSamplesFloat := get_note_samples(0)
-
-	plotSamplesFromFloats(noteSamplesFloat, "plot_0.jpg")
+	x := []float64{1, 1, 1, 1}
+	y := []float64{2, 1}
+	var noteSamplesFloat []float64 = intercorrelation(x, y)
+	for i := 0; i < len(noteSamplesFloat); i++ {
+		fmt.Println(noteSamplesFloat[i])
+	}
 }
-
