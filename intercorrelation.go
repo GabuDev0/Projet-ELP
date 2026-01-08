@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"slices"
 )
 
@@ -31,7 +32,6 @@ func intercorrelation(x, y []float64) []float64 {
 	return result
 }
 
-
 func testIntercorrelation() {
 	x1 := []float64{1, 1, 1, 1}
 	y1 := []float64{2, 1}
@@ -48,7 +48,6 @@ func testIntercorrelation() {
 
 	x2 := []float64{2, 1}
 	y2 := []float64{1, 1, 1, 1}
-	
 
 	f2 := intercorrelation(x2, y2)
 
@@ -69,4 +68,17 @@ func testIntercorrelation() {
 	}
 
 	fmt.Println("** Tous les tests ont été passés avec succès **")
+}
+
+func saveCorrCSV(corr []float64, filename string) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	for i, v := range corr {
+		fmt.Fprintf(f, "%d,%f\n", i, v)
+	}
+	return nil
 }
