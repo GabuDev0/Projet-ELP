@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/youpy/go-wav"
 	"io"
 	"os"
+
+	"github.com/youpy/go-wav"
 )
 
 func main() {
@@ -26,10 +27,37 @@ func main() {
 
 		for _, sample := range samples {
 			samplesFloat = append(samplesFloat, reader.FloatValue(sample, 0))
-			
+
 			continue
 		}
 	}
 
-	testIntercorrelation()
+	note := 64
+
+	template := get_note_samples(note)
+	template = template[:22050]
+	fmt.Println("Template length:", len(template))
+
+	intercorr := intercorrelation(samplesFloat, template)
+	err := saveCorrCSV(intercorr, "corr.csv")
+	if err != nil {
+		fmt.Println("Error saving CSV:", err)
+	}
+
+	maxVal := -1.0
+	maxIndice := 0
+	for i, v := range intercorr {
+		if v > maxVal {
+			maxVal = v
+			maxIndice = i
+		}
+	}
+	lag := maxIndice - len(template) + 1
+	sec := float64(lag) / 44100.0
+	fmt.Println("La note detectee:", note)
+	fmt.Println("La valeur max d'intercorrelation:", maxVal)
+	fmt.Println("Lag:", lag)
+	fmt.Println("Sec:", sec)
+
+	// testIntercorrelation()
 }
