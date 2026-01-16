@@ -9,9 +9,9 @@ import Html.Attributes exposing (placeholder)
 type alias Model =
     Int
 
-initialModel : Int
-initialModel =
-    0
+initialModel : () -> (Model, Cmd msg)
+initialModel _ =
+    (0, Cmd.none)
 
 
 setModel : Maybe Int -> Int -> Model
@@ -36,19 +36,23 @@ type Msg = Decrement | Increment | TextInput String
 
 main : Program () Model Msg
 main =
-    Browser.sandbox
+    Browser.element
         { init = initialModel
+        , subscriptions = subscriptions
         , view = view
         , update = update
         }
 
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd msg)
 update msg model =
     case msg of
         Increment ->
-            model + 1
+            (model + 1, Cmd.none)
         Decrement ->
-            model - 1
+            (model - 1, Cmd.none)
         TextInput text ->
-            setModel (String.toInt text) model
+            (setModel (String.toInt text) model, Cmd.none)
