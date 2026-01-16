@@ -43,12 +43,6 @@ main =
         }
 
 
-on_Input : msg -> msg
-on_Input str =
-    str
-
-
-
 update : Msg -> Model -> Model
 update msg model =
     case msg of
