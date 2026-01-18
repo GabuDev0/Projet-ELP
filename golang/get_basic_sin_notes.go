@@ -16,10 +16,10 @@ func get_note_samples(note int) []float64 {
 	// Cut the "every_sin_notes.wav" file into a note of 0.25s
 	var res []float64
 
-	// 2 seconds per note, multiplied by 44.1kHz
+	// 0.25 seconds per note, multiplied by 44.1kHz
 	startSampleId := note * 11025 // 44100/4
 
-	// ends 2 seconds right after
+	// ends 0.25 seconds right after
 	endSampleId := (note + 1) * 11025
 	fmt.Println(FILENAME)
 
