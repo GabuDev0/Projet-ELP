@@ -12,13 +12,15 @@ func worker(jobs <-chan []float64, results chan<- []float64, wg *sync.WaitGroup)
 	defer wg.Done()
 
 	noteSamplesFloat := get_note_samples(61) //WARNING: add as a parameter
+	
+	var allIntercorr []float64
 
-	var intercorr []float64
 	for samplesFloat := range jobs {
-		intercorr = intercorrelation(samplesFloat, noteSamplesFloat)
+		intercorr := intercorrelation(samplesFloat, noteSamplesFloat)
+		allIntercorr = append(allIntercorr, intercorr...)
 	}
 
-	results <- intercorr
+	results <- allIntercorr
 }
 
 func main() {
@@ -66,8 +68,12 @@ func main() {
 		close(results)
 	}()
 
+	// Collector
 	var intercorrTotal []float64
 	for partial := range results {
+		fmt.Printf("Llen(partial): ")
+		fmt.Println(len(partial))
+
 		for _, elem := range partial {
 			intercorrTotal = append(intercorrTotal, elem)
 		}
@@ -81,7 +87,9 @@ func main() {
 	plotFloats(intercorr, "intercorrPlot61piano.jpg")
 	plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
 
+	fmt.Printf("len(intercorrTotal): ")
+	fmt.Println(len(intercorrTotal)) // BUG:
+	// atm, there's only 8 partial results
 
-
-	testIntercorrelation()
+	// testIntercorrelation()
 }
