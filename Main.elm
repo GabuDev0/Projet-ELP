@@ -3,7 +3,7 @@ module Main exposing (main)
 import Browser
 import Html exposing (Html, Attribute, div, input, text)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onClick)
 
 
 
@@ -50,11 +50,21 @@ init _ =
 
 type Msg
     = ChangeGuess String
+    | RefreshWord
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
     case message of
+        RefreshWord -> 
+            ({ targetWord = "banana"
+            , definitions = []
+            , userGuess = ""
+            , status = Playing
+            , message = "New word, try again!"
+            }
+            , Cmd.none
+            )
         ChangeGuess newGuess ->
             if model.status == Success then
                 ( model , Cmd.none )
@@ -88,6 +98,7 @@ view model =
     div []
         [ viewInput model
         , viewStatus model
+        , viewRefreshButton
         ]
 
 viewInput : Model -> Html Msg
@@ -109,3 +120,8 @@ viewStatus model =
 
         Error err ->
             div [] [ text ("Error: " ++ err) ]
+
+viewRefreshButton : Html Msg
+viewRefreshButton = 
+    div []
+    [ Html.button [onClick RefreshWord] [text "Go for a new word" ] ]
