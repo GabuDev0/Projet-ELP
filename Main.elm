@@ -56,11 +56,13 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
 	case message of
 		ChangeGuess newGuess ->
-			if newGuess == model.targetWord then
+			if model.status == Success then
+				( model , Cmd.none )
+			else if newGuess == model.targetWord then
 				( { model 
 				| userGuess = newGuess
 				, status = Success
-				, message = "Got it! It is indeed" ++ model.targetWord 
+				, message = "Got it! It is indeed " ++ model.targetWord ++ "!"
 				}
 				, Cmd.none
 				)
@@ -83,16 +85,16 @@ subscriptions _ =
 
 view : Model -> Html Msg
 view model = 
-	div[]
+	div []
 		[ viewInput model
 		, viewStatus model
 		]
 
-viewInput: Model -> Html Msg
+viewInput : Model -> Html Msg
 viewInput model =
-	input [ placeholder "Type in to guess", value model.userGuess, onInput ChangeGuess ] []
+	input [ placeholder "Type in to guess", value model.userGuess, onInput ChangeGuess, disabled ( model.status == Success ) ] []
 
-viewStatus: Model -> Html Msg
+viewStatus : Model -> Html Msg
 viewStatus model =
 	case model.status of
         Playing ->
