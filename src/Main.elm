@@ -3,7 +3,7 @@ module Main exposing (main)
 import Browser
 import Html exposing (Html, div, input, text)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onClick)
 import Http
 import Json.Decode as D
 
@@ -89,7 +89,7 @@ definitionDecoder =
 type Msg
     = ChangeGuess String
     | GotDefinition (Result Http.Error String)
-
+    | RefreshWord
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -136,6 +136,16 @@ update msg model =
                       }
                     , Cmd.none
                     )
+        
+        RefreshWord -> 
+            ({ targetWord = "banana"
+            , definition = ""
+            , userGuess = ""
+            , status = Playing
+            , message = "New word, try again!"
+            }
+            , getDefinition "banana"
+            )
 
 
 
@@ -157,6 +167,7 @@ view model =
         [ viewDefinition model
         , viewInput model
         , viewStatus model
+        , viewRefreshButton
         ]
 
 
@@ -199,3 +210,8 @@ viewStatus model =
 
         Error err ->
             div [] [ text ("Error: " ++ err) ]
+
+viewRefreshButton : Html Msg
+viewRefreshButton = 
+    div []
+    [ Html.button [onClick RefreshWord] [text "Go for a new word" ] ]
