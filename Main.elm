@@ -11,7 +11,7 @@ import Html.Events exposing (onInput)
 
 
 main =
-	Browser.element { init = init, update = update, view = view, subscriptions = subscriptions }
+    Browser.element { init = init, update = update, view = view, subscriptions = subscriptions }
 
 
 
@@ -23,7 +23,7 @@ type alias Model =
     , definitions : List String
     , userGuess : String
     , status : Status
-	, message : String
+    , message : String
     }
 
 type Status
@@ -34,14 +34,14 @@ type Status
 
 init : () -> ( Model, Cmd Msg)
 init _ =
-	({ targetWord = "apple"
-	, definitions = []
-	, userGuess = ""
-	, status = Playing
-	, message = "Type in to guess"
-	}
-	, Cmd.none
-	)
+    ({ targetWord = "apple"
+    , definitions = []
+    , userGuess = ""
+    , status = Playing
+    , message = "Type in to guess"
+    }
+    , Cmd.none
+    )
 
 
 
@@ -49,31 +49,31 @@ init _ =
 
 
 type Msg
-	= ChangeGuess String
+    = ChangeGuess String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
-	case message of
-		ChangeGuess newGuess ->
-			if model.status == Success then
-				( model , Cmd.none )
-			else if newGuess == model.targetWord then
-				( { model 
-				| userGuess = newGuess
-				, status = Success
-				, message = "Got it! It is indeed " ++ model.targetWord ++ "!"
-				}
-				, Cmd.none
-				)
-			else
-				( { model
-				| userGuess = newGuess
-				, status = Playing
-				, message = "Keep trying..."
-				}
-				, Cmd.none
-				)
+    case message of
+        ChangeGuess newGuess ->
+            if model.status == Success then
+                ( model , Cmd.none )
+            else if newGuess == model.targetWord then
+                ( { model 
+                | userGuess = newGuess
+                , status = Success
+                , message = "Got it! It is indeed " ++ model.targetWord ++ "!"
+                }
+                , Cmd.none
+                )
+            else
+                ( { model
+                | userGuess = newGuess
+                , status = Playing
+                , message = "Keep trying..."
+                }
+                , Cmd.none
+                )
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -85,18 +85,18 @@ subscriptions _ =
 
 view : Model -> Html Msg
 view model = 
-	div []
-		[ viewInput model
-		, viewStatus model
-		]
+    div []
+        [ viewInput model
+        , viewStatus model
+        ]
 
 viewInput : Model -> Html Msg
 viewInput model =
-	input [ placeholder "Type in to guess", value model.userGuess, onInput ChangeGuess, disabled ( model.status == Success ) ] []
+    input [ placeholder "Type in to guess", value model.userGuess, onInput ChangeGuess, disabled ( model.status == Success ) ] []
 
 viewStatus : Model -> Html Msg
 viewStatus model =
-	case model.status of
+    case model.status of
         Playing ->
             div [] [ text model.message ]
 
