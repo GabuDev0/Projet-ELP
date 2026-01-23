@@ -5,4 +5,7 @@ export default class NumberCard extends Card {
     super(type);
     this.value = value;
   }
+  toString() {
+    return `Card ${this.value}`;
+  }
 }

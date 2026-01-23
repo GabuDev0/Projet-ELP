@@ -1,5 +1,5 @@
 import NumberCard from "./numberCard.js"
-function FillGameDeck() {
+function fillGameDeck() {
     const gameDeck = []
     for (let index = 0; index < 13; index++) {
         const numberCard = new NumberCard("numberCard", index);
@@ -11,4 +11,11 @@ function FillGameDeck() {
     return gameDeck;
 }
 
-console.log(FillGameDeck());
+function showDeck(deck) {
+    deck.forEach(element => {
+        console.log(element.toString())
+    });
+}
+
+const gameDeck = fillGameDeck()
+showDeck(gameDeck)
