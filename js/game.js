@@ -1,6 +1,8 @@
 import NumberCard from "./numberCard.js"
 import ActionCard from "./actionCard.js"
 import ModifierCard from "./modifierCard.js";
+import Player from "./player.js";
+
 function fillGameDeck() {
     const gameDeck = []
 
@@ -34,17 +36,36 @@ function fillGameDeck() {
         gameDeck.push(actionCard2);
         gameDeck.push(actionCard3);
     }
-    
-
-
 
     return gameDeck;
 }
 
 function showDeck(deck) {
     deck.forEach(element => {
-        console.log(element.toString())
+        console.log(element.toString());
     });
+}
+
+function drawCard(deck, player){
+	const card = deck.pop();
+	if (card.type === "NumberCard") {
+		const duplicate = player.hand.some(c => c.value === card.value);
+		console.log(player.ID, "gets", card.toString());
+		if (duplicate) {
+			player.busted = true;
+			return {status: "busted", card: card};
+		}
+	}
+	
+	player.hand.push(card);
+	return {status: "ok", card: card};
+}
+
+function shuffleDeck(deck) {
+	for (let i = deck.length - 1; i > 0; i-- ){
+		const j = Math.floor(Math.random() * (i + 1));
+		[deck[i], deck[j]] = [deck[j], deck[i]];
+	}
 }
 
 const gameDeck = fillGameDeck()
