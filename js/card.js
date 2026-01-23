@@ -3,6 +3,6 @@ export default class Card {
     this.type = type;
   }
   toString() {
-    return `Card ${this.type}`;
+    return `{Card ${this.type}}`;
   }
 }
