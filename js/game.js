@@ -3,6 +3,9 @@ import ActionCard from "./actionCard.js"
 import ModifierCard from "./modifierCard.js";
 import Player from "./player.js";
 
+
+import fs from 'fs/promises';
+
 function fillGameDeck() {
     const gameDeck = []
 
@@ -36,7 +39,6 @@ function fillGameDeck() {
         gameDeck.push(actionCard2);
         gameDeck.push(actionCard3);
     }
-
     return gameDeck;
 }
 
@@ -68,5 +70,17 @@ function shuffleDeck(deck) {
 	}
 }
 
+// gameDeck: [Card], discardPile: [Card], playerPoints: [int]
+const saveTurnToFile = async (filename, gameDeck, discardPile, playerPoints) => {
+
+    await fs.writeFile(filename, "YOU KCOIEAHPFHAE IHFPIAH F PZ");
+
+    return filename;
+}
+
 const gameDeck = fillGameDeck()
 showDeck(gameDeck)
+
+saveTurnToFile("data.txt", gameDeck, [], [123, 44]).then(filename => {
+    console.log("-- Turn data saved in: ", filename);
+}).catch(console.error)
