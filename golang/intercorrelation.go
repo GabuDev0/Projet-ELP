@@ -30,22 +30,6 @@ func intercorrelation(x, y []float64) []float64 {
 
 	return result
 }
-
-// If intercorr(x, y) == toVerify, returns False else True
-func verifyIntercorrelation(toVerify, x, y []float64) bool {
-	intercorr := intercorrelation(x, y)
-	if len(toVerify) != len(intercorr) {
-		fmt.Println("WARNING: verifyIntercorrelation(): the len of toVerify isn't the one expected.")
-		return true
-	}
-	for i := 0; i < len(toVerify); i++ {
-		if toVerify[i] != intercorr[i] {
-			return true
-		}
-	}
-
-	return false
-}
 	
 
 func testIntercorrelation() {

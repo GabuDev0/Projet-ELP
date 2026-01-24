@@ -64,3 +64,18 @@ func plotHistogram(noteSamplesFloat []float64, filename string) {
 		fmt.Println("Histogram saved at " + filename)
 	}
 }
+
+// If x == y, returns True else False
+func isEqual(x, y []float64) bool {
+	if len(x) != len(y) {
+		fmt.Println("WARNING: x and y don't even have the same size")
+		return false
+	}
+	for i := 0; i < len(x); i++ {
+		if x[i] != y[i] {
+			return false
+		}
+	}
+
+	return true
+}
