@@ -56,16 +56,20 @@ function freezeCard(player) {
 
 function flipThree(deck, player) {
     for (let i = 0; i < 3; i++) {
-        drawCard(deck, player)
-    }
+        const result = drawCard(deck, player);
+
+		if (player.busted || player.hand.length === 7) {
+			return;
+    	}
+	}
 }
 
 function drawCard(deck, player){
 	if (player.hand.length < 7) {
 		const card = deck.pop();
+		console.log("Player ", player.ID, " gets ", card.toString());
 		if (card.type === "NumberCard") {
 			const duplicate = player.hand.some(c => c.value === card.value);
-			console.log(player.ID, "gets", card.toString());
 			if (duplicate) {
 				player.busted = true;
 				return {status: "busted", card: card};
@@ -91,8 +95,7 @@ function resetPlayerForNewTurn(player) {
   	player.busted = false;
 }
 
-function isTurnFinished(player, choice) {
-  if (choice === "stop") return true;
+function isTurnFinished(player) {
   if (player.busted) return true;
   if (player.hand.length === 7) return true;
   return false;
@@ -110,7 +113,7 @@ function playerTurn (player, deck, rl, onEnd){
 		const result = drawCard(deck, player);
 		switch (result.status) {
 			case "busted":
-				console.log("Player ", player.ID, " gets ", result.card.toString(), " and is busted. Turn ended.");
+				console.log("Player ", player.ID, " is busted. Turn ended.");
 				onEnd();
         		return;
 			case "success":
@@ -118,7 +121,7 @@ function playerTurn (player, deck, rl, onEnd){
 				onEnd();
         		return;
 			case "ok":
-				console.log("Player ", player.ID, " gets ", result.card.toString(), " and issafe. Turn continues.");
+				console.log("Player ", player.ID, " is safe. Turn continues.");
 				playerTurn(player, deck, rl, onEnd);
         		return;
 		}
