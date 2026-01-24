@@ -48,6 +48,18 @@ function showDeck(deck) {
     });
 }
 
+// When the player draws a freeze card, will be eliminated of the turn and lose all the accumulated cards / points (for the turn)
+function freezeCard(player) {
+    player.busted = true
+    player.hand = []
+}
+
+function flipThree(deck, player) {
+    for (let i = 0; i < 3; i++) {
+        drawCard(deck, player)
+    }
+}
+
 function drawCard(deck, player){
 	const card = deck.pop();
 	if (card.type === "NumberCard") {
@@ -72,7 +84,6 @@ function shuffleDeck(deck) {
 
 // gameDeck: [Card], discardPile: [Card], playerPoints: [int]
 const saveTurnToFile = async (filename, gameDeck, discardPile, playerPoints) => {
-
     await fs.writeFile(filename, "YOU KCOIEAHPFHAE IHFPIAH F PZ");
 
     return filename;
