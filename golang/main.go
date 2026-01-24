@@ -2,25 +2,44 @@ package main
 
 import (
 	"fmt"
-	"github.com/youpy/go-wav"
 	"io"
 	"os"
 	"sync"
+
+	"github.com/youpy/go-wav"
 )
 
-func worker(jobs <-chan []float64, results chan<- []float64, wg *sync.WaitGroup) {
+type Job struct {
+	startingIndex int
+	lenX          int
+	lenY          int
+	data          []float64
+}
+
+type Result struct {
+	startingIndex int // at which index (of the total result) the elements of a partial result should start being added (to the total result)
+	lenX          int
+	lenY          int
+	data          []float64
+}
+
+// Worker
+func worker(jobs <-chan Job, results chan<- Result, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	noteSamplesFloat := get_note_samples(61) //WARNING: add as a parameter
-	
-	var allIntercorr []float64
+	noteSamplesFloat := GetNoteSamples(61)
 
-	for samplesFloat := range jobs {
-		intercorr := intercorrelation(samplesFloat, noteSamplesFloat)
-		allIntercorr = append(allIntercorr, intercorr...)
+	for job := range jobs {
+		intercorr := intercorrelation(job.data, noteSamplesFloat)
+
+		results <- Result{
+			startingIndex: job.startingIndex,
+			lenX:          len(job.data),
+			lenY:          len(noteSamplesFloat),
+			data:          intercorr,
+		}
 	}
 
-	results <- allIntercorr
 }
 
 func main() {
@@ -30,11 +49,11 @@ func main() {
 	file, _ := os.Open(file_path)
 	reader := wav.NewReader(file)
 
-	const numWorkers = 8
-	const samplesPerJob = 2048
+	const NUM_WORKERS = 8
+	const SAMPLES_PER_JOB = 2048
 
-	jobs := make(chan []float64)
-	results := make(chan []float64, numWorkers)
+	jobs := make(chan Job)
+	results := make(chan Result, NUM_WORKERS)
 
 	var wg sync.WaitGroup
 
@@ -44,47 +63,63 @@ func main() {
 
 	// Transform each Sample to a float and adds it to the songSamplesFloat slice
 	for {
-			// "samples" var is a packet of <=2048 samples (if enough samples, otherwise less)
-			samples, err := reader.ReadSamples()
-			if err == io.EOF {
-				break
-			}
-			for _, sample := range samples {
-				// the whole song samples
-				songSamplesFloat = append(songSamplesFloat, reader.FloatValue(sample, 0))
-			}
+		// "samples" var is a packet of <=2048 samples (if enough samples, otherwise less)
+		samples, err := reader.ReadSamples()
+		if err == io.EOF {
+			break
+		}
+		for _, sample := range samples {
+			// the whole song samples
+			songSamplesFloat = append(songSamplesFloat, reader.FloatValue(sample, 0))
 
 		}
 
-	for i := 0; i < numWorkers; i++ {
+	}
+
+	for i := 0; i < NUM_WORKERS; i++ {
 		wg.Add(1)
 		go worker(jobs, results, &wg)
 	}
-	
+
 	go func() {
 		i := 0 // The global index of a sample
 		j := 0 // The index in one pack of a sample
+		k := 0 // at which index (of the total result) the elements of a partial result should start being added (to the total result)
 		var samplesFloat []float64
-		// Place all the samples into packages (slices) of "samplesPerJob" size
+		// Place all the samples into packages (slices) of "SAMPLES_PER_JOB" size
 		for {
 			// If every sample has been sent to a job
 			if i >= len(songSamplesFloat) {
-				jobs <- samplesFloat
+				jobs <- Job{
+					startingIndex: k,
+					lenX:          len(samplesFloat),
+					lenY:          GetSamplesNumber(),
+					data:          samplesFloat,
+				}
 				break
 			}
-			
-			// Creates packs of samplesPerJob length
-			if j < samplesPerJob {
+
+			// Creates packs of SAMPLES_PER_JOB length
+			if j < SAMPLES_PER_JOB {
 				samplesFloat = append(samplesFloat, songSamplesFloat[i])
 				i++
 				j++
 			} else { // If the pack is done, sends the samples to the jobs
 				j = 0
-				jobs <- samplesFloat
+				jobs <- Job{
+					startingIndex: k,
+					lenX:          len(samplesFloat),
+					lenY:          GetSamplesNumber(),
+					data:          samplesFloat,
+				}
 
+				// the next partial result should overlap starting at this index
+				k += len(samplesFloat) // lenX
+
+				// Empty the slice
 				samplesFloat = []float64{}
 			}
-			
+
 		}
 		close(jobs)
 	}()
@@ -94,30 +129,47 @@ func main() {
 		close(results)
 	}()
 
+	intercorrTotal := make([]float64, len(songSamplesFloat)+SAMPLESNUM-1)
+
+	fmt.Println("collector")
 	// Collector
-	var intercorrTotal []float64
 	for partial := range results {
 		fmt.Printf("Llen(partial): ")
-		fmt.Println(len(partial))
+		fmt.Println(len(partial.data))
+		fmt.Println(partial.startingIndex)
 
-		for _, elem := range partial {
-			intercorrTotal = append(intercorrTotal, elem)
+		startingIndex := partial.lenX
+
+		for i, elem := range partial.data {
+			intercorrTotal[startingIndex+i] += elem
 		}
 	}
-	
 
-	//noteSamplesFloat := get_note_samples(61)
-
-	//intercorr := intercorrelation(songSamplesFloat, noteSamplesFloat)
-
-	//plotFloats(intercorr, "intercorrPlot61piano.jpg")
-	//plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
+	fmt.Println("end collector")
 
 	fmt.Printf("len(intercorrTotal): ")
 	fmt.Println(len(intercorrTotal))
 
-	/*if verifyIntercorrelation(intercorr, noteSamplesFloat, noteSamplesFloat) {
-		fmt.Println("WEE WOOO WEEEE WOOOOOOOO")
-	}*/
-	// testIntercorrelation()
+	noteSamplesFloat := GetNoteSamples(61)
+	fmt.Printf("len(noteSamplesFloat) ")
+	fmt.Println(len(noteSamplesFloat))
+
+	intercorr := intercorrelation(songSamplesFloat, noteSamplesFloat)
+
+	fmt.Printf("len(intercorr): ")
+	fmt.Println(len(intercorr))
+
+	fmt.Printf("len(songSamplesFloat) + SAMPLESNUM - 1 ")
+	fmt.Println(len(songSamplesFloat) + SAMPLESNUM - 1)
+
+	fmt.Println(intercorr)
+
+	plotFloats(intercorr, "intercorrPlot61piano.jpg")
+	plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
+
+	A_T_ON_REUSSI := isEqual(intercorr, intercorrTotal)
+
+	if A_T_ON_REUSSI {
+		print("LET'S HACKING GOOOOOOOOOOOOOOOOOOOO")
+	}
 }
