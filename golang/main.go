@@ -138,9 +138,12 @@ func main() {
 		fmt.Println(len(partial.data))
 		fmt.Println(partial.startingIndex)
 
-		startingIndex := partial.lenX
+		startingIndex := partial.startingIndex
 
 		for i, elem := range partial.data {
+			if startingIndex+i >= len(intercorrTotal) {
+				break
+			}
 			intercorrTotal[startingIndex+i] += elem
 		}
 	}
@@ -161,8 +164,6 @@ func main() {
 
 	fmt.Printf("len(songSamplesFloat) + SAMPLESNUM - 1 ")
 	fmt.Println(len(songSamplesFloat) + SAMPLESNUM - 1)
-
-	fmt.Println(intercorr)
 
 	plotFloats(intercorr, "intercorrPlot61piano.jpg")
 	plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
