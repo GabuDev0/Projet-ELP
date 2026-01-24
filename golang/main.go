@@ -31,6 +31,7 @@ func main() {
 	reader := wav.NewReader(file)
 
 	const numWorkers = 8
+	const samplesPerJob = 2048
 
 	jobs := make(chan []float64)
 	results := make(chan []float64, numWorkers)
@@ -39,26 +40,51 @@ func main() {
 
 	defer file.Close()
 
-	for i := 0; i < numWorkers; i++ {
-		wg.Add(1)
-		go worker(jobs, results, &wg)
-	}
 	var songSamplesFloat []float64
-	go func() {
-		for {
+
+	// Transform each Sample to a float and adds it to the songSamplesFloat slice
+	for {
 			// "samples" var is a packet of <=2048 samples (if enough samples, otherwise less)
 			samples, err := reader.ReadSamples()
 			if err == io.EOF {
 				break
 			}
-			var samplesFloat []float64
 			for _, sample := range samples {
-				// on change la sample en float
-				samplesFloat = append(samplesFloat, reader.FloatValue(sample, 0))
+				// the whole song samples
 				songSamplesFloat = append(songSamplesFloat, reader.FloatValue(sample, 0))
 			}
-			jobs <- samplesFloat
 
+		}
+
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go worker(jobs, results, &wg)
+	}
+	
+	go func() {
+		i := 0 // The global index of a sample
+		j := 0 // The index in one pack of a sample
+		var samplesFloat []float64
+		// Place all the samples into packages (slices) of "samplesPerJob" size
+		for {
+			// If every sample has been sent to a job
+			if i >= len(songSamplesFloat) {
+				jobs <- samplesFloat
+				break
+			}
+			
+			// Creates packs of samplesPerJob length
+			if j < samplesPerJob {
+				samplesFloat = append(samplesFloat, songSamplesFloat[i])
+				i++
+				j++
+			} else { // If the pack is done, sends the samples to the jobs
+				j = 0
+				jobs <- samplesFloat
+
+				samplesFloat = []float64{}
+			}
+			
 		}
 		close(jobs)
 	}()
@@ -80,16 +106,18 @@ func main() {
 	}
 	
 
-	noteSamplesFloat := get_note_samples(61)
+	//noteSamplesFloat := get_note_samples(61)
 
-	intercorr := intercorrelation(songSamplesFloat, noteSamplesFloat)
+	//intercorr := intercorrelation(songSamplesFloat, noteSamplesFloat)
 
-	plotFloats(intercorr, "intercorrPlot61piano.jpg")
-	plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
+	//plotFloats(intercorr, "intercorrPlot61piano.jpg")
+	//plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
 
 	fmt.Printf("len(intercorrTotal): ")
-	fmt.Println(len(intercorrTotal)) // BUG:
-	// atm, there's only 8 partial results
+	fmt.Println(len(intercorrTotal))
 
+	/*if verifyIntercorrelation(intercorr, noteSamplesFloat, noteSamplesFloat) {
+		fmt.Println("WEE WOOO WEEEE WOOOOOOOO")
+	}*/
 	// testIntercorrelation()
 }
