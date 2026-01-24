@@ -7,10 +7,11 @@ import (
 
 	"github.com/youpy/go-wav"
 )
+const SAMPLESNUM int = 0
 
 // note: int; ranges C0-B10 = 0-130
 // Returns a slice containing 0.25 seconds of samples (1 note) from every_sin_notes.wav
-func get_note_samples(note int) []float64 {
+func GetNoteSamples(note int) []float64 {
 	FILENAME := "every_sin_notes.wav"
 
 	// Cut the "every_sin_notes.wav" file into a note of 0.25s
@@ -51,4 +52,8 @@ func get_note_samples(note int) []float64 {
 	fmt.Println(n)
 
 	return res
+}
+
+func GetSamplesNumber() int {
+	return SAMPLESNUM
 }
