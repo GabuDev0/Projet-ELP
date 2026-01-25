@@ -131,8 +131,7 @@ func main() {
 
 	// Contains the results of the intercorrelation computed with goroutines
 	intercorrTotal := make([]float64, len(songSamplesFloat)+SAMPLESNUM-1)
-
-	fmt.Println("collector")
+	
 	// Collector
 	for partial := range results {
 		fmt.Printf("Llen(partial): ")
@@ -149,11 +148,9 @@ func main() {
 		}
 	}
 
-	fmt.Println("end collector")
-
 	noteSamplesFloat := GetNoteSamples(61)
 
-	// Test incorrelation in one go
+	// Test of incorrelation in one go
 	intercorr := intercorrelation(songSamplesFloat, noteSamplesFloat)
 
 	plotFloats(intercorr, "intercorrPlot61piano.jpg")
