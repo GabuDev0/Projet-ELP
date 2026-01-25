@@ -82,6 +82,7 @@ func accumulateOverFrames(frames [][]float64, pcTemplates [12][][]float64) []flo
 			global[i] /= sum
 		}
 
-		return global
+		
 	}
+	return global
 }

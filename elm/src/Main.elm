@@ -1,58 +1,182 @@
-module Main exposing (Model)
-import Html exposing (..)
-import Html.Events exposing (onClick)
+module Main exposing (main)
+
 import Browser
-import Html.Events exposing (onInput)
-import Html.Attributes exposing (placeholder)
+import Http
+import Random
+import Json.Decode as Decode
+import Html exposing (Html, Attribute, div, input, text)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onInput, onClick)
+
+
+
+-- MAIN
+
+
+main =
+    Browser.element { init = init, update = update, view = view, subscriptions = subscriptions }
+
+
+
+-- MODEL
 
 
 type alias Model =
-    Int
+    { targetWord : String
+    , definitions : List String
+    , userGuess : String
+    , status : Status
+    , message : String
+    }
 
-initialModel : () -> (Model, Cmd msg)
-initialModel _ =
-    (0, Cmd.none)
+type Status
+    = Loading
+    | Playing
+    | Success
+    | Error String
 
-
-setModel : Maybe Int -> Int -> Model
-setModel maybeNum model =
-    case maybeNum of
-        Just num -> num
-        Nothing -> model
-
-
-view : Model -> Html Msg
-view model =
-    div []
-        [ text "click on those buttons"
-        , button [ onClick Decrement ] [ text "-" ]
-        , text (String.fromInt model)
-        , button [ onClick Increment] [ text "+" ]
-        , textarea [ placeholder "Write some numbers here", onInput TextInput] [ ]
-        ]
-
-type Msg = Decrement | Increment | TextInput String
+words =
+    [ "banana", "cat", "dog", "music" ]
 
 
-main : Program () Model Msg
-main =
-    Browser.element
-        { init = initialModel
-        , subscriptions = subscriptions
-        , view = view
-        , update = update
+fetchDefinitions : String -> Cmd Msg
+fetchDefinitions word =
+    Http.get
+        { url = "https://api.dictionaryapi.dev/api/v2/entries/en/" ++ word
+        , expect = Http.expectJson GotDefinitions definitionsDecoder
         }
 
+definitionsDecoder : Decode.Decoder (List String)
+definitionsDecoder = 
+    Decode.at
+        ["0", "meanings", "0", "definitions"]
+        (Decode.list (Decode.field "definition" Decode.string))
+
+randomWord : Random.Generator String
+randomWord = 
+    Random.uniform "apple" words
+
+init : () -> ( Model, Cmd Msg)
+init _ =
+    ({ targetWord = ""
+    , definitions = []
+    , userGuess = ""
+    , status = Loading
+    , message = "Loading definitions..."
+    }
+    , Random.generate NewWord randomWord
+    )
+
+
+
+-- UPDATE
+
+
+type Msg
+    = ChangeGuess String
+    | RefreshWord
+    | NewWord String
+    | GotDefinitions ( Result Http.Error ( List String ) )
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update message model =
+    case message of
+        NewWord word ->
+            ({ model
+            | targetWord = word
+            , userGuess = ""
+            , status = Loading
+            , message = "Loading definitions..."
+            }
+            , fetchDefinitions word
+            )
+        GotDefinitions result ->
+            case result of 
+                Ok defs ->
+                    ({ model
+                    | definitions = defs
+                    , status = Playing
+                    }
+                    ,Cmd.none
+                    )
+                Err _ ->
+                    ({model
+                    | status = Error "Failed to fetch definitions"}
+                    , Cmd.none
+                    )
+        RefreshWord -> 
+            ({ model
+            | definitions = []
+            , userGuess = ""
+            , status = Loading
+            , message = "New word, try again!"
+            }
+            , Random.generate NewWord randomWord
+            )
+        ChangeGuess newGuess ->
+            if model.status == Success then
+                ( model , Cmd.none )
+            else if newGuess == model.targetWord then
+                ( { model 
+                | userGuess = newGuess
+                , status = Success
+                , message = "Got it! It is indeed " ++ model.targetWord ++ "!"
+                }
+                , Cmd.none
+                )
+            else
+                ( { model
+                | userGuess = newGuess
+                , status = Playing
+                , message = "Keep trying..."
+                }
+                , Cmd.none
+                )
+
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
-update : Msg -> Model -> (Model, Cmd msg)
-update msg model =
-    case msg of
-        Increment ->
-            (model + 1, Cmd.none)
-        Decrement ->
-            (model - 1, Cmd.none)
-        TextInput text ->
-            (setModel (String.toInt text) model, Cmd.none)
+
+
+-- VIEW
+
+view : Model -> Html Msg
+view model = 
+    div []
+        [ viewDefinitions model
+        , viewInput model
+        , viewStatus model
+        , viewRefreshButton
+        ]
+
+viewInput : Model -> Html Msg
+viewInput model =
+    input [ placeholder "Type in to guess", value model.userGuess, onInput ChangeGuess, disabled ( model.status == Success ) ] []
+
+viewStatus : Model -> Html Msg
+viewStatus model =
+    case model.status of
+        Playing ->
+            div [] [ text model.message ]
+
+        Success ->
+            div []
+                [ text ("Congratulations!" ++ model.message) ]
+
+        Loading ->
+            div [] [ text "Loading..." ]
+
+        Error err ->
+            div [] [ text ("Error: " ++ err) ]
+
+viewRefreshButton : Html Msg
+viewRefreshButton = 
+    div []
+    [ Html.button [onClick RefreshWord] [text "Go for a new word" ] ]
+
+viewDefinitions : Model -> Html Msg
+viewDefinitions model =
+    div[]
+        ( List.map (\d -> div [] [ text d ]) model.definitions )
