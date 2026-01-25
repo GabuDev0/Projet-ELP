@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"slices"
 )
 
@@ -69,4 +70,17 @@ func testIntercorrelation() {
 	}
 
 	fmt.Println("** Tous les tests ont été passés avec succès **")
+}
+
+func saveCorrCSV(corr []float64, filename string) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	for i, v := range corr {
+		fmt.Fprintf(f, "%d,%f\n", i, v)
+	}
+	return nil
 }

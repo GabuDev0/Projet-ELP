@@ -1,3 +1,4 @@
 *.jpg
 golang/debug_examples/
 .DS_STORE
+/elm/elm-stuff

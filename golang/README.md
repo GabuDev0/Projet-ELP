@@ -7,6 +7,6 @@ From a .wav file, it will analyze the most used notes of the song, and deduce wh
 
 Current progress:
 - [x] Can read a .wav file
-- [ ] Can intercorrelate the input with a chosen note
+- [x] Can intercorrelate the input with a chosen note
 - [ ] Can calculate the most used notes of the input
 - [ ] Can deduce from the most used notes the tonality of the input
