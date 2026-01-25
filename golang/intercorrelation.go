@@ -31,6 +31,7 @@ func intercorrelation(x, y []float64) []float64 {
 
 	return result
 }
+	
 
 func testIntercorrelation() {
 	x1 := []float64{1, 1, 1, 1}
@@ -48,6 +49,7 @@ func testIntercorrelation() {
 
 	x2 := []float64{2, 1}
 	y2 := []float64{1, 1, 1, 1}
+	
 
 	f2 := intercorrelation(x2, y2)
 
