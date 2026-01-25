@@ -129,6 +129,7 @@ func main() {
 		close(results)
 	}()
 
+	// Contains the results of the intercorrelation computed with goroutines
 	intercorrTotal := make([]float64, len(songSamplesFloat)+SAMPLESNUM-1)
 
 	fmt.Println("collector")
@@ -150,27 +151,11 @@ func main() {
 
 	fmt.Println("end collector")
 
-	fmt.Printf("len(intercorrTotal): ")
-	fmt.Println(len(intercorrTotal))
-
 	noteSamplesFloat := GetNoteSamples(61)
-	fmt.Printf("len(noteSamplesFloat) ")
-	fmt.Println(len(noteSamplesFloat))
 
+	// Test incorrelation in one go
 	intercorr := intercorrelation(songSamplesFloat, noteSamplesFloat)
-
-	fmt.Printf("len(intercorr): ")
-	fmt.Println(len(intercorr))
-
-	fmt.Printf("len(songSamplesFloat) + SAMPLESNUM - 1 ")
-	fmt.Println(len(songSamplesFloat) + SAMPLESNUM - 1)
 
 	plotFloats(intercorr, "intercorrPlot61piano.jpg")
 	plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
-
-	A_T_ON_REUSSI := isEqual(intercorr, intercorrTotal)
-
-	if A_T_ON_REUSSI {
-		print("LET'S HACKING GOOOOOOOOOOOOOOOOOOOO")
-	}
 }
