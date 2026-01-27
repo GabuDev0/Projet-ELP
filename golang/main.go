@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"sync"
-
+	"time"
 	"github.com/youpy/go-wav"
 )
 
@@ -21,6 +22,18 @@ type Result struct {
 	lenX          int
 	lenY          int
 	data          []float64
+}
+
+type NoteValue struct {
+	note  string
+	value float64
+}
+
+func exeTime(name string) func() {
+	start := time.Now()
+	return func() {
+		fmt.Printf("%s execution time: %v\n", name, time.Since(start))
+	}
 }
 
 // Worker
@@ -51,6 +64,8 @@ func corrEnergy(corr []float64) float64 {
 }
 
 func parallelIntercorr(songSamplesFloat []float64, note int) []float64 {
+	defer exeTime("parallelIntercorr")()
+
 	const NUM_WORKERS = 8
 	const SAMPLES_PER_JOB = 2048
 
@@ -119,10 +134,6 @@ func parallelIntercorr(songSamplesFloat []float64, note int) []float64 {
 
 	// Collector
 	for partial := range results {
-		fmt.Printf("Llen(partial): ")
-		fmt.Println(len(partial.data))
-		fmt.Println(partial.startingIndex)
-
 		startingIndex := partial.startingIndex
 
 		for i, elem := range partial.data {
@@ -137,8 +148,6 @@ func parallelIntercorr(songSamplesFloat []float64, note int) []float64 {
 }
 
 func transformFileToSample(file_path string) []float64 {
-	fmt.Println(file_path)
-
 	file, _ := os.Open(file_path)
 	reader := wav.NewReader(file)
 
@@ -161,7 +170,78 @@ func transformFileToSample(file_path string) []float64 {
 	return songSamplesFloat
 }
 
+func getMostUsedNotes(noteEnergyDic map[string]float64) []string {
+	// Transforms the map (unordered) to a list (ordered)
+	var noteList []NoteValue
+	for note, value := range noteEnergyDic {
+		noteList = append(noteList, NoteValue{note, value})
+	}
+
+	sort.Slice(noteList, func(i, j int) bool {
+		return noteList[i].value > noteList[j].value
+	})
+
+	top7notes := noteList[:7] // The 7 most used notes
+
+	fmt.Println("7 most used notes: (diatonic scale)")
+	var diatonicScale []string
+	for _, noteValue := range top7notes {
+		diatonicScale = append(diatonicScale, noteValue.note)
+		fmt.Println(noteValue.note)
+	}
+
+	
+	return diatonicScale
+}
+
+func detectMajorKey(notes []string) string {
+	var majorScales = map[string][]string{
+	"C":  {"C", "D", "E", "F", "G", "A", "B"},
+	"C#":  {"C#", "D#", "F", "F#", "G#", "A#", "C"},
+	"D":  {"D", "E", "F#", "G", "A", "B", "C#"},
+	"D#":  {"D#", "F", "G", "G#", "A#", "C", "D"},
+	"E":  {"E", "F#", "G#", "A", "B", "C#", "D#"},
+	"F":  {"F", "G", "A", "A#", "C", "D", "E"},
+	"F#": {"F#", "G#", "A#", "B", "C#", "D#", "F"},
+	"G": {"G", "A", "B", "C", "D", "E", "F#"},
+	"G#": {"G#", "A#", "C", "C#", "D#", "F", "G"},
+	"A": {"A", "B", "C#", "D", "E", "F#", "G#"},
+	"A#": {"A#", "C", "D", "D#", "F", "G", "A"},
+	"B":  {"B", "C#", "D#", "E", "F#", "G#", "A#"},
+	}
+
+
+	noteSet := make(map[string]bool)
+	for _, n := range notes {
+		noteSet[n] = true
+	}
+
+	bestKey := ""
+	bestScore := 0
+
+	for key, scale := range majorScales {
+		score := 0
+		for _, note := range scale {
+			if noteSet[note] {
+				score++
+			}
+		}
+
+		if score > bestScore {
+			bestScore = score
+			bestKey = key
+		}
+	}
+
+	if bestScore >= 5 {
+		return bestKey + "maj"
+	}
+
+	return "Tonalité indéterminée"
+}
+
 func main() {
+	defer exeTime("main")()
 	pitchClasses := map[string][]int{
 		"C":  {48, 60, 72},
 		"C#": {49, 61, 73},
@@ -177,7 +257,9 @@ func main() {
 		"B":  {59, 71, 83},
 	}
 
+	//file_path := "example-files/a-tender-feeling-piano-torby-brand.mp3"
 	file_path := "example-files/scale_piano_C_maj.wav"
+	
 	songSamplesFloat := transformFileToSample(file_path)
 
 	//Store the energy of every pitch class in pcEnergy
@@ -200,17 +282,19 @@ func main() {
 		fmt.Println(pc, ":", eng)
 	}
 
-	//Example: energy of C#4
-	intercorrTotal := parallelIntercorr(songSamplesFloat, 61)
+	fmt.Println(detectMajorKey(getMostUsedNotes(pcEnergy)))
 
-	energy61 := corrEnergy(intercorrTotal)
-	fmt.Println("Energy of note 61:", energy61)
+	//Example: energy of C#4
+	//intercorrTotal := parallelIntercorr(songSamplesFloat, 61)
+
+	//energy61 := corrEnergy(intercorrTotal)
+	//fmt.Println("Energy of note 61:", energy61)
 
 	//Test of incorrelation in one go
-	noteSamplesFloat := GetNoteSamples(61)
+	//noteSamplesFloat := GetNoteSamples(61)
 
-	intercorr := intercorrelation(songSamplesFloat, noteSamplesFloat)
+	//intercorr := intercorrelation(songSamplesFloat, noteSamplesFloat)
 
-	plotFloats(intercorr, "intercorrPlot61piano.jpg")
-	plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
+	//plotFloats(intercorr, "intercorrPlot61piano.jpg")
+	//plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
 }
