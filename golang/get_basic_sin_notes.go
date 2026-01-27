@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os"
 
@@ -22,38 +21,36 @@ func GetNoteSamples(note int) []float64 {
 
 	// ends 0.25 seconds right after
 	endSampleId := (note + 1) * 11025
-	fmt.Println(FILENAME)
 
 	file, _ := os.Open(FILENAME)
 	reader := wav.NewReader(file)
 
 	defer file.Close()
 
-	i := 0
+	i := 0 // The sample index. If the sample is in the range of the desired note, it will be appended to the result slice
 
-	n := 0
-
+	// Reads all samples
 	for {
-		samples, err := reader.ReadSamples()
+		samples, err := reader.ReadSamples() // "samples" variables are packs of 204 or less samples
 		if err == io.EOF {
 			break
 		}
 
+		// Only keep the samples of the desired note
+		// And converts them to float
 		for _, s := range samples {
 			if startSampleId <= i && i < endSampleId {
 				s_float := reader.FloatValue(s, 0)
 				res = append(res, s_float)
-				n += 1
 			}
 			i += 1
 		}
 	}
 
-	fmt.Println(n)
-
 	return res
 }
 
+// Returns the length of the slice returned by GetNoteSamples()
 func GetSamplesNumber() int {
 	return SAMPLESNUM
 }
