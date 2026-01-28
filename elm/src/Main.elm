@@ -22,8 +22,9 @@ main =
 
 
 type alias Model =
-    { targetWord : String
-    , definitions : List String
+    { words : List String
+    , targetWord : String
+    , definitions : List Meaning
     , userGuess : String
     , status : Status
     , message : String
@@ -35,36 +36,54 @@ type Status
     | Success
     | Error String
 
-words =
-    [ "banana", "cat", "dog", "music" ]
+type alias Meaning = 
+    { partOfSpeech : String
+    , definitions : List String
+    }
 
+fetchWordList : Cmd Msg
+fetchWordList =
+    Http.get
+        { url = "/static/words.json"
+        , expect = Http.expectJson GotWordList wordListDecoder
+        }
+
+wordListDecoder : Decode.Decoder (List String)
+wordListDecoder = 
+    Decode.list Decode.string
 
 fetchDefinitions : String -> Cmd Msg
 fetchDefinitions word =
     Http.get
         { url = "https://api.dictionaryapi.dev/api/v2/entries/en/" ++ word
-        , expect = Http.expectJson GotDefinitions definitionsDecoder
+        , expect = Http.expectJson GotDefinitions meaningsDecoder
         }
 
-definitionsDecoder : Decode.Decoder (List String)
-definitionsDecoder = 
-    Decode.at
-        ["0", "meanings", "0", "definitions"]
-        (Decode.list (Decode.field "definition" Decode.string))
+definitionDecoder : Decode.Decoder String
+definitionDecoder = Decode.field "definition" Decode.string
 
-randomWord : Random.Generator String
-randomWord = 
-    Random.uniform "apple" words
+meaningDecoder : Decode.Decoder Meaning
+meaningDecoder = 
+    Decode.map2 Meaning
+        (Decode.field "partOfSpeech" Decode.string)
+        (Decode.field "definitions" (Decode.list definitionDecoder))
+
+meaningsDecoder : Decode.Decoder (List Meaning)
+meaningsDecoder = 
+    Decode.index 0
+        (Decode.field "meanings" (Decode.list meaningDecoder))
+
 
 init : () -> ( Model, Cmd Msg)
 init _ =
-    ({ targetWord = ""
+    ({ words = []
+    , targetWord = ""
     , definitions = []
     , userGuess = ""
     , status = Loading
-    , message = "Loading definitions..."
+    , message = "Loading word list..."
     }
-    , Random.generate NewWord randomWord
+    , fetchWordList
     )
 
 
@@ -76,7 +95,8 @@ type Msg
     = ChangeGuess String
     | RefreshWord
     | NewWord String
-    | GotDefinitions ( Result Http.Error ( List String ) )
+    | GotDefinitions ( Result Http.Error ( List Meaning ) )
+    | GotWordList ( Result Http.Error ( List String ) )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -93,10 +113,11 @@ update message model =
             )
         GotDefinitions result ->
             case result of 
-                Ok defs ->
+                Ok meanings ->
                     ({ model
-                    | definitions = defs
+                    | definitions = meanings
                     , status = Playing
+                    , message = "Guess It!"
                     }
                     ,Cmd.none
                     )
@@ -105,15 +126,38 @@ update message model =
                     | status = Error "Failed to fetch definitions"}
                     , Cmd.none
                     )
+        GotWordList result ->
+            case result of
+                Ok words ->
+                    case words of
+                        x :: rest ->
+                            ({ model
+                            | words = words
+                            , message = "Selecting a word..."
+                            }
+                            , Random.generate NewWord (Random.uniform x rest)
+                            )
+                        [] ->
+                            ({model | status = Error "Word List Empty"}
+                            , Cmd.none
+                            )
+                Err _ ->
+                    ({model | status = Error "Failed to load word list"}
+                    , Cmd.none
+                    )
         RefreshWord -> 
-            ({ model
-            | definitions = []
-            , userGuess = ""
-            , status = Loading
-            , message = "New word, try again!"
-            }
-            , Random.generate NewWord randomWord
-            )
+            case model.words of
+                x :: rest ->
+                    ({ model
+                    | definitions = []
+                    , userGuess = ""
+                    , status = Loading
+                    , message = "New word, try again!"
+                    }
+                    , Random.generate NewWord (Random.uniform x rest)
+                    )
+                [] ->
+                    (model, Cmd.none)
         ChangeGuess newGuess ->
             if model.status == Success then
                 ( model , Cmd.none )
@@ -179,4 +223,15 @@ viewRefreshButton =
 viewDefinitions : Model -> Html Msg
 viewDefinitions model =
     div[]
-        ( List.map (\d -> div [] [ text d ]) model.definitions )
+        ( List.map viewMeaning model.definitions )
+
+viewMeaning : Meaning -> Html Msg
+viewMeaning meaning = 
+    div [ class "meaning" ]
+        [ Html.h3 [] [ text meaning.partOfSpeech ]
+        , Html.ul []
+            (List.map
+                (\d -> Html.li [] [ text d ])
+                meaning.definitions
+            )
+        ]
