@@ -98,11 +98,15 @@ async function drawCard(deck, player, discard_deck = [], players, rl, actionQueu
 			actionQueue.push(card);
 			return "ok";
 		}
+		
 		return await resolveActionCard(card, deck, player, players, rl);
 	}
 
 	// NORMAL CARD
 	player.hand.push(card);
+  if (player.hand.length === 7) {
+			player.success = true
+	}
 
 	return "ok";
 }
@@ -136,6 +140,7 @@ function resetPlayerForNewTurn(player) {
 	player.modif = [];
 	player.action = [];
   	player.busted = false;
+	player.success = false;
 }
 
 function isTurnFinished(player) {
@@ -164,6 +169,10 @@ function computeRoundScore(player) {
 
 		}
 	}
+	if (player.success) {
+		sum += 15;
+	}
+	
 	return sum;
 }
 
