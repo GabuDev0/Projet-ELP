@@ -13,7 +13,7 @@ function fillGameDeck() {
     // Number cards 0-12
     for (let index = 0; index < 13; index++) {
         const numberCard = new NumberCard(index);
-        for (let j = 0; j < index + 1; j++) { // push multiples
+        for (let j = 0; j < index; j++) { // push multiples
             gameDeck.push(numberCard);
         }
     }
@@ -42,7 +42,9 @@ function shuffleDeck(deck) {
 }
 
 function showDeck(deck) {
-    deck.forEach(c => console.log(c.toString()));
+    deck.forEach(element => {
+        console.log(element.toString());
+    });
 }
 
 // ------------------- Game Logic -------------------
