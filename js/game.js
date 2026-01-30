@@ -53,6 +53,8 @@ function freezeCard(player, discard_deck) {
 	for (const modifCard of player.modif) discard_deck.push(modifCard);
 	player.hand = [];
 }
+
+
 // Draw 3 cards
 async function flipThree(deck, player, players, rl, discard_deck) {
 
@@ -318,12 +320,38 @@ function startGame(players, deck, rl, discard_deck) {
 	nextRound();
 }
 
+function askPlayerNumber(rl){
+	return new Promise(resolve => {
+		rl.question("How many players?", answer => {
+			const n = Number(answer);
+			if (!Number.isInteger(n) || n <= 0) {
+				console.log("Please enter a valid positive number.");
+				resolve(askPlayerNumber(rl));
+			} else {
+				resolve(n);
+			}
+		});
+	});
+}
 
-const gameDeck = fillGameDeck();
-shuffleDeck(gameDeck);
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+function createPlayers(n) {
+	const players = [];
+	for (let i = 1; i <= n; i++) {
+		players.push(new Player(`P${i}`));
+	}
+	return players;
+}
 
-const players = [new Player("P1"), new Player("P2")];
+async function main() {
+	const gameDeck = fillGameDeck();
+	shuffleDeck(gameDeck);
+	const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+	
+	const playerNumber = await askPlayerNumber(rl);
+	const players = createPlayers(playerNumber);
 
-const discard_deck = []
-startGame(players, gameDeck, rl, discard_deck);
+	const discard_deck = [];
+	startGame(players, gameDeck, rl, discard_deck);
+}
+
+main();
