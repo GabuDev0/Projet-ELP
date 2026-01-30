@@ -4,8 +4,6 @@ import ModifierCard from "./modifierCard.js";
 import Player from "./player.js";
 import readline from "readline";
 import fs from 'fs';
-import { start } from "repl";
-
 
 function fillGameDeck() {
     const gameDeck = []
@@ -54,30 +52,31 @@ function freezeCard(player, discard_deck) {
 	player.hand = [];
 }
 
-
-// Draw 3 cards
+// Flip Three action card
 async function flipThree(deck, player, players, rl, discard_deck) {
-
+	let is_busted = false
+	// Draws 3 cards
 	for (let i = 0; i < 3; i++) {
 		if (isTurnFinished(player)) return;
 
-		const result = await drawCard(deck, player, discard_deck, players, rl);
-
+		result = await drawCard(deck, player, discard_deck, players, rl);
 		if (result === "busted") {
-			console.log("Busted during flip three!");
-
-			const playerChosen = await choosePlayer(players, rl);
-			console.log("Giving remaining action cards to Player", playerChosen.ID);
-
-			// bug here
-			for (const card of player.actions) {
-				playerChosen.hand.push(card);
-			}
-			player.actions = []
-			return "busted";
+			is_busted = true
 		}
 	}
+	// if the player is busted, give the remaining action cards to another player
+	if (is_busted) {
+		const playerChosen = await choosePlayer(players, rl);
+		console.log("Giving remaining action cards to Player", playerChosen.ID);
 
+		for (const card of player.actions) {
+			playerChosen.hand.push(card);
+		}
+		player.actions = []
+		return "busted";
+	}
+
+	// resolve all action cards if the player isn't busted
 	for (const actionCard of player.actions) {
 		const result = await resolveActionCard(actionCard, deck, player, players, rl, discard_deck);
 		if(result === "busted") return "busted";
@@ -85,7 +84,6 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 
 	return "ok";
 }
-
 
 async function drawCard(deck, player, discard_deck, players, rl){
 	if (deck.length === 0) {
@@ -126,16 +124,13 @@ async function drawCard(deck, player, discard_deck, players, rl){
 async function resolveActionCard(card, deck, player, players, rl, discard_deck) {
 
 	if (card.action === "freeze") {
-		console.log("freeeeeeeeze")
 		freezeCard(player, discard_deck)
 		return "busted"
 	}
 	else if (card.action === "flip three"){
-		console.log("FLIP THREEEE")
 		return await flipThree(deck, player, players, rl, discard_deck)
 	}
 	else if (card.action === "second chance") {
-		console.log("you got a second chance")
 		return "ok"
 	}
 	return "ok";
