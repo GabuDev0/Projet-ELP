@@ -53,13 +53,13 @@ function freezeCard(player) {
 }
 
 // Draw 3 cards
-async function flipThree(deck, player, players, rl) {
+async function flipThree(deck, player, players, rl, discard_deck) {
 	const actionQueue = []
 
 	for (let i = 0; i < 3; i++) {
 		if (isTurnFinished(player)) return;
 
-		const result = await drawCard(deck, player, [], players, rl, actionQueue);
+		const result = await drawCard(deck, player, discard_deck, players, rl, actionQueue);
 
 		if (result === "busted") {
 			console.log("Busted during flip three!");
@@ -82,7 +82,7 @@ async function flipThree(deck, player, players, rl) {
 	return "ok";
 }
 
-async function drawCard(deck, player, discard_deck = [], players, rl, actionQueue = null){
+async function drawCard(deck, player, discard_deck, players, rl, actionQueue = null){
 	if (deck.length === 0) {
 		for (const card of discard_deck) deck.push(card);
 		shuffleDeck(deck);
@@ -232,7 +232,7 @@ function choosePlayer(players, rl) {
 	});
 }
 
-async function playerTurn (player, deck, rl, onEnd, players){
+async function playerTurn (player, deck, rl, onEnd, players, discard_deck){
 	if (isTurnFinished(player)) {
 		onEnd();
 		return;
@@ -246,7 +246,7 @@ async function playerTurn (player, deck, rl, onEnd, players){
             return;
         }
 
-		await drawCard(deck, player, [], players, rl);
+		await drawCard(deck, player, discard_deck, players, rl);
 
 		if (isTurnFinished(player)) {
 			if (player.busted)
@@ -310,7 +310,6 @@ function startGame(players, deck, rl, discard_deck) {
 				rl.close();
 				return;
 			}
-			discard(discard_deck, players);
 			roundIndex ++;
 			nextRound();
 		});
