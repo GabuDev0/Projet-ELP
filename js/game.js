@@ -6,6 +6,7 @@ import readline from "readline";
 import fs from 'fs';
 import { start } from "repl";
 
+
 function fillGameDeck() {
     const gameDeck = []
 
@@ -36,13 +37,6 @@ function fillGameDeck() {
 
 function showDeck(deck) {
     deck.forEach(element => console.log(element.toString()));
-}
-
-function deckToString (deck){
-	if (deck.length === 0) {
-		return "empty";
-	}
-	return deck.map(card => card.toString()).join(", ");
 }
 
 // When the player draws a freeze card, will be eliminated of the turn and lose all the accumulated cards / points (for the turn)
@@ -267,7 +261,7 @@ function gameRound(players, deck, rl, onRoundEnd) {
 	nextPlayer();
 }
 
-function startGame(players, deck, rl) {
+function startGame(players, deck, rl, discard_deck) {
 	let roundIndex = 1;
 
 	function nextRound() {
@@ -307,4 +301,6 @@ shuffleDeck(gameDeck);
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 const players = [new Player("P1"), new Player("P2")];
-startGame(players, gameDeck, rl);
+
+const discard_deck = []
+startGame(players, gameDeck, rl, discard_deck);
