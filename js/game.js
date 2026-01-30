@@ -115,7 +115,8 @@ async function drawCard(deck, player, discard_deck, players, rl){
 	}
 
 	if (card.type === "ActionCard") {
-		player.actions.push(card);
+		discard_deck.push(card);
+		//player.actions.push(card);
 		console.log("*** player.actions: ", player.actions)
 		return await resolveActionCard(card, deck, player, players, rl, discard_deck);
 	}
@@ -124,7 +125,6 @@ async function drawCard(deck, player, discard_deck, players, rl){
 }
 
 async function resolveActionCard(card, deck, player, players, rl, discard_deck) {
-	discard_deck.push(card);
 	if (card.action === "freeze") {
 		freezeCard(player, discard_deck)
 		return "busted"

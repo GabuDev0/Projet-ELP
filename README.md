@@ -14,3 +14,4 @@ This project was a try of recreating the game Flip7 (even though each player dra
 
 ### Known bugs / issues:
 - Second chance card isn't used
+- cards drawed after being busted in a flip three aren't given to another player
