@@ -50,6 +50,7 @@ function freezeCard(player, discard_deck) {
     for (const card of player.hand) discard_deck.push(card);
 	for (const modifCard of player.modif) discard_deck.push(modifCard);
 	player.hand = [];
+	player.modif = []
 }
 
 // Flip Three action card
@@ -59,7 +60,7 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 	for (let i = 0; i < 3; i++) {
 		if (isTurnFinished(player)) return;
 
-		result = await drawCard(deck, player, discard_deck, players, rl);
+		const result = await drawCard(deck, player, discard_deck, players, rl);
 		if (result === "busted") {
 			is_busted = true
 		}
@@ -86,12 +87,14 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 }
 
 async function drawCard(deck, player, discard_deck, players, rl){
+	// if the deck is empty, use the discard pile and shuffle it again
 	if (deck.length === 0) {
 		deck.push(...discard_deck);
 		shuffleDeck(deck);
 		discard_deck.length = 0;
 	}
 
+	// Takes a card from the deck
 	const card = deck.pop();
 	console.log("Player ", player.ID, " got ", card.toString())
 
@@ -110,11 +113,10 @@ async function drawCard(deck, player, discard_deck, players, rl){
 	if (card.type === "ModifierCard" ) {
 		player.modif.push(card);
 	}
-	
-	// ACTION CARD
+
 	if (card.type === "ActionCard") {
-		//player.actions.push(card);
-		discard_deck.push(card);
+		player.actions.push(card);
+		console.log("*** player.actions: ", player.actions)
 		return await resolveActionCard(card, deck, player, players, rl, discard_deck);
 	}
 
@@ -122,7 +124,7 @@ async function drawCard(deck, player, discard_deck, players, rl){
 }
 
 async function resolveActionCard(card, deck, player, players, rl, discard_deck) {
-
+	discard_deck.push(card);
 	if (card.action === "freeze") {
 		freezeCard(player, discard_deck)
 		return "busted"
