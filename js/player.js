@@ -2,7 +2,9 @@ export default class Player {
   constructor(ID) { // type: "str"
     this.ID = ID;
 	this.hand = [];
-	this.busted = false
+	this.action = [];
+	this.modif = [];
+	this.busted = false;
 	this.points = 0
   }
   toString() {

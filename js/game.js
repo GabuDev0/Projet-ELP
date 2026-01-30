@@ -56,31 +56,29 @@ function freezeCard(player) {
 
 function flipThree(deck, player) {
     for (let i = 0; i < 3; i++) {
-        const result = drawCard(deck, player);
-
-		if (player.busted || player.hand.length === 7) {
+		if (isTurnFinished(player)) {
 			return;
     	}
+        const card = drawCard(deck, player);
 	}
 }
 
 function drawCard(deck, player){
-	if (player.hand.length < 7) {
-		const card = deck.pop();
-		console.log("Player ", player.ID, " gets ", card.toString());
-		if (card.type === "NumberCard") {
-			const duplicate = player.hand.some(c => c.value === card.value);
-			if (duplicate) {
-				player.busted = true;
-				return {status: "busted", card: card};
-			}
+	const card = deck.pop();
+	console.log("Player ", player.ID, " gets ", card.toString());
+	if (card.type === "NumberCard") {
+		const duplicate = player.hand.some(c => c.value === card.value);
+		if (duplicate) {
+			player.busted = true;
+			return card;
 		}
-		
 		player.hand.push(card);
-		return {status: "ok", card: card};
-	} else {
-		return {status: "success", card: null};
+	} else if (card.type === "ActionCard") {
+		player.action.push(card);
+	} else if (card.type === "ModifierCard") {
+		player.modif.push(card);
 	}
+	return card;
 }
 
 function shuffleDeck(deck) {
@@ -97,11 +95,40 @@ function resetPlayerForNewTurn(player) {
 
 function isTurnFinished(player) {
   if (player.busted) return true;
-  if (player.hand.length === 7) return true;
+  if (player.hand.length >= 7) return true;
   return false;
 }
 
-function playerTurn (player, deck, rl, onEnd){
+function computeRoundScore(player) {
+	if (player.busted) {
+		return 0;
+	}
+	let sum = 0;
+	for (const card of player.hand) {
+		sum += card.value;
+	}
+	return sum;
+}
+
+function getWinner(players) {
+	if (players.some(p => p.points >= 200)) {
+		const maxScore = Math.max(...players.map(p => p.points))
+		for (const p of players) {
+			if (p.points === maxScore) {
+				return p;
+			}
+		}
+	} else {
+		return null;
+	}
+}
+
+function playerTurn(player, deck, rl, onEnd) {
+	if (isTurnFinished(player)) {
+		onEnd();
+		return;
+	}
+
 	rl.question("Continue to flip? (y/n)", (answer) => {
         if (answer === "n") {
 			console.log("Player chooses to stop. Turn ended.");
@@ -110,20 +137,20 @@ function playerTurn (player, deck, rl, onEnd){
             return;
         }
 	
-		const result = drawCard(deck, player);
-		switch (result.status) {
-			case "busted":
-				console.log("Player ", player.ID, " is busted. Turn ended.");
-				onEnd();
-        		return;
-			case "success":
+		const card = drawCard(deck, player);
+
+		if (isTurnFinished(player)) {
+			if (player.busted) {
+				console.log("Player", player.ID, "is busted. Turn ended.");
+			} else {
 				console.log("Player ",player.ID, " has flipped 7 number cards successfully. Turn ended.");
-				onEnd();
-        		return;
-			case "ok":
-				console.log("Player ", player.ID, " is safe. Turn continues.");
-				playerTurn(player, deck, rl, onEnd);
-        		return;
+			}
+			onEnd();
+			return;
+		} else {
+			console.log("Player ", player.ID, " is safe. Turn continues.");
+			playerTurn(player, deck, rl, onEnd);
+        	return;
 		}
 	});
 }
@@ -163,6 +190,18 @@ function startGame(players, deck, rl) {
 
 		console.log(`Round ${roundIndex}`);
 		gameRound(players, deck, rl, () => {
+			for (const player of players) {
+				const sum = computeRoundScore(player);
+				player.points += sum;
+				console.log("Player ", player.ID, " got ", sum, " points in this round. Total points: ", player.points, ".")
+			}
+			const winner = getWinner(players);
+			if (winner != null) {
+				console.log("=== Game Over ===");
+				console.log("Winner:", winner.ID, "with", winner.points, "points");
+				rl.close();
+				return;
+			}
 			roundIndex ++;
 			nextRound();
 		});
