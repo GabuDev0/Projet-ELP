@@ -11,12 +11,11 @@ function fillGameDeck() {
     const gameDeck = []
 
     for (let index = 0; index < 13; index++) {
-        const numberCard = new NumberCard(index);
         if (index == 0) {
-            gameDeck.push(numberCard);
+            gameDeck.push(new NumberCard(index));
         }
         for (let j = 0; j < index; j++) {
-            gameDeck.push(numberCard);
+            gameDeck.push(new NumberCard(index));
         }
     }
 
@@ -47,13 +46,13 @@ function deckToString (deck){
 	return deck.map(card => card.toString()).join(", ");
 }
 
+
 function freezeCard(player, discard_deck) {
     player.busted = true
     for (const card of player.hand) discard_deck.push(card);
 	for (const modifCard of player.modif) discard_deck.push(modifCard);
 	player.hand = [];
 }
-
 // Draw 3 cards
 async function flipThree(deck, player, players, rl, discard_deck) {
 	const actionQueue = []
@@ -69,9 +68,11 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 			const playerChosen = await choosePlayer(players, rl);
 			console.log("Giving remaining action cards to Player", playerChosen.ID);
 
-			for (const card of actionQueue) {
+			// bug here
+			for (const card of player.actions) {
 				playerChosen.hand.push(card);
 			}
+			player.actions = []
 			return "busted";
 		}
 	}
@@ -84,9 +85,10 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 	return "ok";
 }
 
+
 async function drawCard(deck, player, discard_deck, players, rl){
 	if (deck.length === 0) {
-		for (const card of discard_deck) deck.push(card);
+		deck.push(...discard_deck);
 		shuffleDeck(deck);
 		discard_deck.length = 0;
 	}
