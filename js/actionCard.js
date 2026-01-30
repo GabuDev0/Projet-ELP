@@ -2,7 +2,7 @@ import Card from "./card.js"
 
 export default class ActionCard extends Card {
   constructor(action) {
-    super("actionCard");
+    super("ActionCard");
     this.action = action;
   }
   toString() {
