@@ -2,8 +2,8 @@ export default class Player {
   constructor(ID) { // type: "str"
     this.ID = ID;
 	this.hand = [];
-	this.action = [];
-	this.modif = [];
+  this.modif = [];
+  this.actions = [];
 	this.busted = false;
 	this.success = false;
 	this.points = 0

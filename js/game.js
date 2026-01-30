@@ -98,10 +98,16 @@ async function drawCard(deck, player, discard_deck, players, rl, actionQueue = n
 			player.busted = true;
 			return "busted";
 		}
+		player.hand.push(card);
+		if (player.hand.length === 7) {
+			player.success = true
+		}
 	}
 
+	
 	// ACTION CARD
-	if (card.type == "ActionCard") {
+	if (card.type === "ActionCard") {
+		player.actions.push(card);
 		if (actionQueue) {
 			actionQueue.push(card);
 			return "ok";
@@ -110,16 +116,17 @@ async function drawCard(deck, player, discard_deck, players, rl, actionQueue = n
 		return await resolveActionCard(card, deck, player, players, rl, discard_deck);
 	}
 
-	// NORMAL CARD
-	player.hand.push(card);
-	if (player.hand.length === 7) {
-		player.success = true
+	if (card.type === "ModifierCard" ) {
+		player.modif.push(card);
 	}
 
 	return "ok";
 }
 
 async function resolveActionCard(card, deck, player, players, rl, discard_deck) {
+
+	discard_deck.push(card);
+
 	if (card.action === "freeze") {
 		console.log("freeeeeeeeze")
 		freezeCard(player)
@@ -152,9 +159,14 @@ function resetPlayerForNewTurn(player) {
 }
 
 function isTurnFinished(player) {
-  if (player.busted) return true;
-  if (player.hand.length >= 7) return true;
-  return false;
+	if (player.busted) return true;
+	let i = 0
+	for (const card of player.hand) {
+		if (card.type === "NumberCard") {
+			i = i + 1
+		}
+	}
+	return i === 7
 }
 
 function computeRoundScore(player) {
@@ -164,19 +176,22 @@ function computeRoundScore(player) {
 	for (const card of player.hand) {
 		sum += card.value;
 	}
-	for (const modif of player.modif) {
-		switch (modif.operation) {
-			case "+":
-				sum += modif.value;
-				break;
-			case "x":
-				sum *= modif.value;
-				break;
-			default:
-				console.log("Unknown modifier:", modif);
-
+	for (const card of player.hand) {
+		if (card.type === "ModifierCard") {
+			switch (card.operation) {
+				case "+":
+					sum += card.value;
+					break;
+				case "x":
+					sum *= card.value;
+					break;
+				default:
+					console.log("Unknown modifier card:", card);
+			}
 		}
+		
 	}
+	
 	if (player.success) {
 		sum += 15;
 	}
@@ -192,9 +207,11 @@ function getWinner(players) {
 	return null;
 }
 
-function discard (discard_deck, players){
+function discard(discard_deck, players){
 	for (const player of players) {
 		for (const card of player.hand) discard_deck.push(card)
+		for (const modifCard of player.modif) discard_deck.push(modifCard)
+		for (const actionCard of player.actions) discard_deck.push(actionCard)
 	}
 }
 
