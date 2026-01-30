@@ -55,12 +55,11 @@ function freezeCard(player, discard_deck) {
 }
 // Draw 3 cards
 async function flipThree(deck, player, players, rl, discard_deck) {
-	const actionQueue = []
 
 	for (let i = 0; i < 3; i++) {
 		if (isTurnFinished(player)) return;
 
-		const result = await drawCard(deck, player, discard_deck, players, rl, actionQueue);
+		const result = await drawCard(deck, player, discard_deck, players, rl);
 
 		if (result === "busted") {
 			console.log("Busted during flip three!");
@@ -77,7 +76,7 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 		}
 	}
 
-	for (const actionCard of actionQueue) {
+	for (const actionCard of player.actions) {
 		const result = await resolveActionCard(actionCard, deck, player, players, rl, discard_deck);
 		if(result === "busted") return "busted";
 	}
