@@ -90,7 +90,7 @@ async function drawCard(deck, player, discard_deck = [], players, rl, actionQueu
 	}
 
 	const card = deck.pop();
-	console.log("Player ", player.ID, " got ", card)
+	console.log("Player ", player.ID, " got ", card.toString())
 
 	if (card.type === "NumberCard") {
 		const duplicate = player.hand.some(c => c.value === card.value);
