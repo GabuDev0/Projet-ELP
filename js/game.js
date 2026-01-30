@@ -88,6 +88,9 @@ function drawCard(deck, player, discard_deck){
 			return card;
 		}
 		player.hand.push(card);
+		if (player.hand.length === 7) {
+			player.success = true
+		}
 	} else if (card.type === "ActionCard") {
 		player.action.push(card);
 	} else if (card.type === "ModifierCard") {
@@ -108,6 +111,7 @@ function resetPlayerForNewTurn(player) {
 	player.modif = [];
 	player.action = [];
   	player.busted = false;
+	player.success = false;
 }
 
 function isTurnFinished(player) {
@@ -137,6 +141,10 @@ function computeRoundScore(player) {
 
 		}
 	}
+	if (player.success) {
+		sum += 15;
+	}
+	
 	return sum;
 }
 

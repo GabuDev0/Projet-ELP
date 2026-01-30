@@ -5,6 +5,7 @@ export default class Player {
 	this.action = [];
 	this.modif = [];
 	this.busted = false;
+	this.success = false;
 	this.points = 0
   }
   toString() {
