@@ -1,246 +1,224 @@
-import NumberCard from "./numberCard.js"
-import ActionCard from "./actionCard.js"
+import NumberCard from "./numberCard.js";
+import ActionCard from "./actionCard.js";
 import ModifierCard from "./modifierCard.js";
 import Player from "./player.js";
-
 import readline from "readline";
-import fs from 'fs/promises';
+import fs from "fs/promises";
+
+// ------------------- Game Setup -------------------
 
 function fillGameDeck() {
-    const gameDeck = []
+    const gameDeck = [];
 
-    // Add number cards
+    // Number cards 0-12
     for (let index = 0; index < 13; index++) {
         const numberCard = new NumberCard(index);
-        if (index == 0) {
-            gameDeck.push(numberCard);
-        }
-        for (let j = 0; j < index; j++) {
+        for (let j = 0; j < index + 1; j++) { // push multiples
             gameDeck.push(numberCard);
         }
     }
 
-    // Add modifier cards
+    // Modifier cards
     for (let i = 1; i < 6; i++) {
-        const modifierCardPlus = new ModifierCard("+", i*2)
-        gameDeck.push(modifierCardPlus);
+        gameDeck.push(new ModifierCard("+", i * 2));
     }
-    const modifierCardMult = new ModifierCard("x", 2)
-    gameDeck.push(modifierCardMult)
+    gameDeck.push(new ModifierCard("x", 2));
 
-    
-    // Add action cards
+    // Action cards
     for (let i = 0; i < 3; i++) {
-        const actionCard1 = new ActionCard("freeze");
-        const actionCard2 = new ActionCard("flip three");
-        const actionCard3 = new ActionCard("second chance");
-
-        gameDeck.push(actionCard1);
-        gameDeck.push(actionCard2);
-        gameDeck.push(actionCard3);
+        gameDeck.push(new ActionCard("freeze"));
+        gameDeck.push(new ActionCard("flip three"));
+        gameDeck.push(new ActionCard("second chance"));
     }
+
     return gameDeck;
 }
 
-function showDeck(deck) {
-    deck.forEach(element => {
-        console.log(element.toString());
-    });
-}
-
-// When the player draws a freeze card, will be eliminated of the turn and lose all the accumulated cards / points (for the turn)
-function freezeCard(player) {
-    player.busted = true
-    player.hand = []
-}
-
-function flipThree(deck, player) {
-    for (let i = 0; i < 3; i++) {
-		if (isTurnFinished(player)) {
-			return;
-    	}
-        const card = drawCard(deck, player, discard_deck);
-	}
-}
-
-function drawCard(deck, player, discard_deck){
-	if (deck.length === 0) {
-		for (const card of discard_deck) {
-			deck.push(card);
-		}
-		shuffleDeck(deck);
-		discard_deck.length = 0;
-	}
-
-	const card = deck.pop();
-	console.log("Player ", player.ID, " gets ", card.toString());
-	if (card.type === "NumberCard") {
-		const duplicate = player.hand.some(c => c.value === card.value);
-		if (duplicate) {
-			player.busted = true;
-			return card;
-		}
-		player.hand.push(card);
-	} else if (card.type === "ActionCard") {
-		player.action.push(card);
-	} else if (card.type === "ModifierCard") {
-		player.modif.push(card);
-	}
-	return card;
-}
-
 function shuffleDeck(deck) {
-	for (let i = deck.length - 1; i > 0; i-- ){
-		const j = Math.floor(Math.random() * (i + 1));
-		[deck[i], deck[j]] = [deck[j], deck[i]];
-	}
+    for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
 }
+
+function showDeck(deck) {
+    deck.forEach(c => console.log(c.toString()));
+}
+
+// ------------------- Game Logic -------------------
 
 function resetPlayerForNewTurn(player) {
-  	player.hand = [];
-  	player.busted = false;
+    player.hand = [];
+    player.busted = false;
 }
 
 function isTurnFinished(player) {
-  if (player.busted) return true;
-  if (player.hand.length >= 7) return true;
-  return false;
+    return player.busted || player.hand.length >= 7;
 }
 
+function freezeCard(player) {
+    player.busted = true;
+    player.hand = [];
+}
+
+async function choosePlayer(players, rl) {
+    return new Promise(resolve => {
+        rl.question("Which player do you choose? ", (answer) => {
+            const id = Number(answer);
+            if (!isNaN(id) && id >= 0 && id < players.length) {
+                resolve(players[id]);
+            } else {
+                console.log("Invalid player.");
+                resolve(choosePlayer(players, rl));
+            }
+        });
+    });
+}
+
+async function resolveActionCard(card, deck, player, players, rl, discardDeck) {
+    if (card.action === "freeze") {
+        freezeCard(player);
+        return "busted";
+    } else if (card.action === "flip three") {
+        return await flipThree(deck, player, players, rl, discardDeck);
+    } else if (card.action === "second chance") {
+        return "ok";
+    }
+}
+
+async function drawCard(deck, player, actionQueue, players, rl, discardDeck) {
+    if (deck.length === 0) {
+        deck.push(...discardDeck);
+        discardDeck.length = 0;
+        shuffleDeck(deck);
+        console.log("Deck was empty, reshuffled discard pile into deck.");
+    }
+
+    const card = deck.pop();
+    console.log(`Player ${player.ID} draws ${card.toString()}`);
+
+    if (card.type === "NumberCard") {
+        if (player.hand.some(c => c.value === card.value)) {
+            player.busted = true;
+            return "busted";
+        }
+        player.hand.push(card);
+    } else if (card.type === "ActionCard") {
+        actionQueue.push(card);
+        return await resolveActionCard(card, deck, player, players, rl, discardDeck);
+    } else if (card.type === "ModifierCard") {
+        player.hand.push(card);
+    }
+
+    return "ok";
+}
+
+async function flipThree(deck, player, players, rl, discardDeck) {
+    const actionQueue = [];
+    for (let i = 0; i < 3; i++) {
+        if (isTurnFinished(player)) break;
+        const result = await drawCard(deck, player, actionQueue, players, rl, discardDeck);
+        if (result === "busted") {
+            console.log("Busted during flip three!");
+            const chosenPlayer = await choosePlayer(players, rl);
+            console.log(`Giving remaining action cards to Player ${chosenPlayer.ID}`);
+            chosenPlayer.hand.push(...actionQueue);
+            return "busted";
+        }
+    }
+
+    for (const card of actionQueue) {
+        const result = await resolveActionCard(card, deck, player, players, rl, discardDeck);
+        if (result === "busted") return "busted";
+    }
+
+    return "ok";
+}
+
+// ------------------- Player Turn -------------------
+
+async function playerTurn(player, deck, rl, players, discardDeck) {
+    resetPlayerForNewTurn(player);
+
+    while (!isTurnFinished(player)) {
+        const answer = await new Promise(resolve => rl.question("Continue to flip? (y/n) ", resolve));
+        if (answer.toLowerCase() === "n") {
+            console.log(`Player ${player.ID} stops. Hand:`, player.hand);
+            break;
+        }
+
+        const result = await drawCard(deck, player, [], players, rl, discardDeck);
+        if (result === "busted") {
+            console.log(`Player ${player.ID} busted!`);
+            break;
+        }
+    }
+}
+
+// ------------------- Game Rounds -------------------
+
 function computeRoundScore(player) {
-	if (player.busted) {
-		return 0;
-	}
-	let sum = 0;
-	for (const card of player.hand) {
-		sum += card.value;
-	}
-	return sum;
+    if (player.busted) return 0;
+    return player.hand.reduce((sum, c) => sum + (c.value || 0), 0);
+}
+
+function discardCards(discardDeck, players) {
+    for (const player of players) {
+        discardDeck.push(...player.hand);
+        player.hand = [];
+    }
 }
 
 function getWinner(players) {
-	if (players.some(p => p.points >= 200)) {
-		const maxScore = Math.max(...players.map(p => p.points))
-		for (const p of players) {
-			if (p.points === maxScore) {
-				return p;
-			}
-		}
-	} else {
-		return null;
-	}
+    const maxPoints = Math.max(...players.map(p => p.points));
+    return players.find(p => p.points === maxPoints);
 }
 
-function discard (discard_deck, players){
-	for (const player of players) {
-		for (const card of player.hand) {
-			discard_deck.push(card)
-		}
-	}
+async function gameRound(players, deck, rl, discardDeck) {
+    for (const player of players) {
+        await playerTurn(player, deck, rl, players, discardDeck);
+    }
+
+    for (const player of players) {
+        const sum = computeRoundScore(player);
+        player.points += sum;
+        console.log(`Player ${player.ID} scored ${sum} points. Total: ${player.points}`);
+    }
+
+    discardCards(discardDeck, players);
+
+    const winner = getWinner(players);
+    if (winner && winner.points >= 200) {
+        console.log(`=== Game Over ===\nWinner: ${winner.ID} with ${winner.points} points`);
+        rl.close();
+        return true;
+    }
+    return false;
 }
 
-function playerTurn(player, deck, rl, onEnd) {
-	if (isTurnFinished(player)) {
-		onEnd();
-		return;
-	}
-
-	rl.question("Continue to flip? (y/n)", (answer) => {
-        if (answer === "n") {
-			console.log("Player chooses to stop. Turn ended.");
-            console.log("Hand cards:", player.hand);
-            onEnd();
-            return;
-        }
-	
-		const card = drawCard(deck, player, discard_deck);
-
-		if (isTurnFinished(player)) {
-			if (player.busted) {
-				console.log("Player", player.ID, "is busted. Turn ended.");
-			} else {
-				console.log("Player ",player.ID, " has flipped 7 number cards successfully. Turn ended.");
-			}
-			onEnd();
-			return;
-		} else {
-			console.log("Player ", player.ID, " is safe. Turn continues.");
-			playerTurn(player, deck, rl, onEnd);
-        	return;
-		}
-	});
+async function startGame(players, deck, rl, discardDeck) {
+    let round = 1;
+    while (true) {
+        console.log(`\n=== Round ${round} ===`);
+        const finished = await gameRound(players, deck, rl, discardDeck);
+        if (finished) break;
+        round++;
+    }
 }
 
-
-function gameRound(players, deck, rl, onRoundEnd) {
-	let playerIndex = 0;
-
-	function nextPlayer() {
-		if (playerIndex >= players.length) {
-			console.log("All players have finished their turns.");
-			onRoundEnd();
-			return;
-		}
-
-		const player = players[playerIndex];
-		console.log("Player ", player.ID, "'s turn ---");
-		resetPlayerForNewTurn(player);
-		playerTurn(player, deck, rl, () => {
-			playerIndex++;
-			nextPlayer();
-		})
-	}
-
-	nextPlayer();
-}
-
-function startGame(players, deck, rl, discard_deck) {
-	let roundIndex = 1;
-
-	function nextRound() {
-		console.log(`Round ${roundIndex}`);
-		gameRound(players, deck, rl, () => {
-			for (const player of players) {
-				const sum = computeRoundScore(player);
-				player.points += sum;
-				console.log("Player ", player.ID, " got ", sum, " points in this round. Total points: ", player.points, ".")
-			}
-			const winner = getWinner(players);
-			if (winner != null) {
-				console.log("=== Game Over ===");
-				console.log("Winner:", winner.ID, "with", winner.points, "points");
-				rl.close();
-				return;
-			}
-			discard(discard_deck, players);
-			roundIndex ++;
-			nextRound();
-		});
-	}
-
-	nextRound();
-}
-
-
-// gameDeck: [Card], discardPile: [Card], playerPoints: [int]
-const saveTurnToFile = async (filename, gameDeck, discardPile, playerPoints) => {
-    await fs.writeFile(filename, "YOU KCOIEAHPFHAE IHFPIAH F PZ");
-
-    return filename;
-}
+// ------------------- Run Game -------------------
 
 const gameDeck = fillGameDeck();
-const discard_deck = [];
+const discardDeck = [];
 shuffleDeck(gameDeck);
 showDeck(gameDeck);
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
+
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+const players = [new Player("P1"), new Player("P2")];
+
+startGame(players, gameDeck, rl, discardDeck);
+
+// Save turn data
+fs.writeFile("data.txt", "Turn data saved").then(() => {
+    console.log("-- Turn data saved in data.txt");
 });
-const player1 = new Player("P1");
-const player2 = new Player("P2");
-const players = [player1, player2];
-startGame(players, gameDeck, rl, discard_deck);
-saveTurnToFile("data.txt", gameDeck, [], [123, 44]).then(filename => {
-    console.log("-- Turn data saved in: ", filename);
-}).catch(console.error)
