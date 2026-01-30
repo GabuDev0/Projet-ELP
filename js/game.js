@@ -3,7 +3,7 @@ import ActionCard from "./actionCard.js"
 import ModifierCard from "./modifierCard.js";
 import Player from "./player.js";
 
-
+import readline from "readline";
 import fs from 'fs/promises';
 
 function fillGameDeck() {
@@ -218,10 +218,17 @@ const saveTurnToFile = async (filename, gameDeck, discardPile, playerPoints) => 
     return filename;
 }
 
-const gameDeck = fillGameDeck()
-shuffleDeck(gameDeck)
-showDeck(gameDeck)
-
+const gameDeck = fillGameDeck();
+shuffleDeck(gameDeck);
+showDeck(gameDeck);
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+const player1 = new Player("P1");
+const player2 = new Player("P2");
+const players = [player1, player2];
+startGame(players, gameDeck, rl);
 saveTurnToFile("data.txt", gameDeck, [], [123, 44]).then(filename => {
     console.log("-- Turn data saved in: ", filename);
 }).catch(console.error)
