@@ -13,7 +13,7 @@ function fillGameDeck() {
 
     // Add number cards
 	// index < 13
-    for (let index = 0; index < 3; index++) {
+    for (let index = 0; index < 13; index++) {
         const numberCard = new NumberCard(index);
         if (index == 0) {
             gameDeck.push(numberCard);
@@ -25,7 +25,7 @@ function fillGameDeck() {
 
     // Add modifier cards
 	// i < 6
-    for (let i = 1; i < 0; i++) {
+    for (let i = 1; i < 6; i++) {
         const modifierCardPlus = new ModifierCard("+", i*2)
         gameDeck.push(modifierCardPlus);
     }
