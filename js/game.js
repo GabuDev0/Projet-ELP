@@ -75,7 +75,7 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 	}
 
 	for (const actionCard of actionQueue) {
-		const result = await resolveActionCard(actionCard, deck, player, players, rl);
+		const result = await resolveActionCard(actionCard, deck, player, players, rl, discard_deck);
 		if(result === "busted") return "busted";
 	}
 
@@ -107,7 +107,7 @@ async function drawCard(deck, player, discard_deck, players, rl, actionQueue = n
 			return "ok";
 		}
 		
-		return await resolveActionCard(card, deck, player, players, rl);
+		return await resolveActionCard(card, deck, player, players, rl, discard_deck);
 	}
 
 	// NORMAL CARD
@@ -119,7 +119,7 @@ async function drawCard(deck, player, discard_deck, players, rl, actionQueue = n
 	return "ok";
 }
 
-async function resolveActionCard(card, deck, player, players, rl) {
+async function resolveActionCard(card, deck, player, players, rl, discard_deck) {
 	if (card.action === "freeze") {
 		console.log("freeeeeeeeze")
 		freezeCard(player)
@@ -127,7 +127,7 @@ async function resolveActionCard(card, deck, player, players, rl) {
 	}
 	else if (card.action === "flip three"){
 		console.log("FLIP THREEEE")
-		return await flipThree(deck, player, players, rl)
+		return await flipThree(deck, player, players, rl, discard_deck)
 	}
 	else if (card.action === "second chance") {
 		console.log("you got a second chance")
@@ -257,13 +257,13 @@ async function playerTurn (player, deck, rl, onEnd, players, discard_deck){
 			onEnd();
 			return;
 		} else {
-			playerTurn(player, deck, rl, onEnd, players);
+			playerTurn(player, deck, rl, onEnd, players, discard_deck);
 			return;
 		}
 	});
 }
 
-function gameRound(players, deck, rl, onRoundEnd) {
+function gameRound(players, deck, rl, onRoundEnd, discard_deck) {
 	let playerIndex = 0;
 
 	function nextPlayer() {
@@ -279,7 +279,7 @@ function gameRound(players, deck, rl, onRoundEnd) {
 		playerTurn(player, deck, rl, () => {
 			playerIndex++;
 			nextPlayer();
-		}, players);
+		}, players, discard_deck);
 	}
 
 	nextPlayer();
@@ -312,7 +312,7 @@ function startGame(players, deck, rl, discard_deck) {
 			}
 			roundIndex ++;
 			nextRound();
-		});
+		}, discard_deck);
 	}
 
 	nextRound();
