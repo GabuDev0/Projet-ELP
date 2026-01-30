@@ -11,12 +11,11 @@ function fillGameDeck() {
     const gameDeck = []
 
     for (let index = 0; index < 13; index++) {
-        const numberCard = new NumberCard(index);
         if (index == 0) {
-            gameDeck.push(numberCard);
+            gameDeck.push(new NumberCard(index));
         }
         for (let j = 0; j < index; j++) {
-            gameDeck.push(numberCard);
+            gameDeck.push(new NumberCard(index));
         }
     }
 
@@ -47,9 +46,8 @@ function deckToString (deck){
 	return deck.map(card => card.toString()).join(", ");
 }
 
-function freezeCard(player) {
+function freezeCard(player, players) {
     player.busted = true
-    player.hand = []
 }
 
 // Draw 3 cards
@@ -67,9 +65,11 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 			const playerChosen = await choosePlayer(players, rl);
 			console.log("Giving remaining action cards to Player", playerChosen.ID);
 
-			for (const card of actionQueue) {
+			// bug here
+			for (const card of player.actions) {
 				playerChosen.hand.push(card);
 			}
+			player.actions = []
 			return "busted";
 		}
 	}
@@ -83,8 +83,10 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 }
 
 async function drawCard(deck, player, discard_deck, players, rl, actionQueue = null){
+	console.log(`Deck remaining: ${deck.length} cards\n`);
+	console.log(`Discard pile: ${discard_deck.length} cards:\n`);
 	if (deck.length === 0) {
-		for (const card of discard_deck) deck.push(card);
+		deck.push(...discard_deck);
 		shuffleDeck(deck);
 		discard_deck.length = 0;
 	}
@@ -106,17 +108,16 @@ async function drawCard(deck, player, discard_deck, players, rl, actionQueue = n
 
 	
 	// ACTION CARD
-	if (card.type === "ActionCard") {
-		player.actions.push(card);
+	else if (card.type === "ActionCard") {
 		if (actionQueue) {
 			actionQueue.push(card);
 			return "ok";
 		}
-		
+		player.actions.push(card);
 		return await resolveActionCard(card, deck, player, players, rl, discard_deck);
 	}
 
-	if (card.type === "ModifierCard" ) {
+	else if (card.type === "ModifierCard" ) {
 		player.modif.push(card);
 	}
 
@@ -129,7 +130,7 @@ async function resolveActionCard(card, deck, player, players, rl, discard_deck) 
 
 	if (card.action === "freeze") {
 		console.log("freeeeeeeeze")
-		freezeCard(player)
+		freezeCard(player, players)
 		return "busted"
 	}
 	else if (card.action === "flip three"){
@@ -153,7 +154,7 @@ function shuffleDeck(deck) {
 function resetPlayerForNewTurn(player) {
   	player.hand = [];
 	player.modif = [];
-	player.action = [];
+	player.actions = [];
   	player.busted = false;
 	player.success = false;
 }
