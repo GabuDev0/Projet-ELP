@@ -92,8 +92,16 @@ async function drawCard(deck, player, discard_deck = [], players, rl, actionQueu
 	const card = deck.pop();
 	console.log("Player ", player.ID, " got ", card)
 
+	if (card.type === "NumberCard") {
+		const duplicate = player.hand.some(c => c.value === card.value);
+		if (duplicate) {
+			player.busted = true;
+			return "busted";
+		}
+	}
+
 	// ACTION CARD
-	if (card instanceof ActionCard) {
+	if (card.type == "ActionCard") {
 		if (actionQueue) {
 			actionQueue.push(card);
 			return "ok";
@@ -104,8 +112,8 @@ async function drawCard(deck, player, discard_deck = [], players, rl, actionQueu
 
 	// NORMAL CARD
 	player.hand.push(card);
-  if (player.hand.length === 7) {
-			player.success = true
+	if (player.hand.length === 7) {
+		player.success = true
 	}
 
 	return "ok";
@@ -225,6 +233,11 @@ function choosePlayer(players, rl) {
 }
 
 async function playerTurn (player, deck, rl, onEnd, players){
+	if (isTurnFinished(player)) {
+		onEnd();
+		return;
+	}
+
 	rl.question("Continue to flip? (y/n)", async (answer) => {
         if (answer === "n") {
 			console.log("Player chooses to stop. Turn ended.");
@@ -242,8 +255,10 @@ async function playerTurn (player, deck, rl, onEnd, players){
 				console.log("Player", player.ID, "reached 7 cards.");
 
 			onEnd();
+			return;
 		} else {
 			playerTurn(player, deck, rl, onEnd, players);
+			return;
 		}
 	});
 }
