@@ -47,9 +47,11 @@ function deckToString (deck){
 	return deck.map(card => card.toString()).join(", ");
 }
 
-function freezeCard(player) {
+function freezeCard(player, discard_deck) {
     player.busted = true
-    player.hand = []
+    for (const card of player.hand) discard_deck.push(card);
+	for (const modifCard of player.modif) discard_deck.push(modifCard);
+	player.hand = [];
 }
 
 // Draw 3 cards
@@ -82,7 +84,7 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 	return "ok";
 }
 
-async function drawCard(deck, player, discard_deck, players, rl, actionQueue = null){
+async function drawCard(deck, player, discard_deck, players, rl){
 	if (deck.length === 0) {
 		for (const card of discard_deck) deck.push(card);
 		shuffleDeck(deck);
@@ -104,20 +106,15 @@ async function drawCard(deck, player, discard_deck, players, rl, actionQueue = n
 		}
 	}
 
+	if (card.type === "ModifierCard" ) {
+		player.modif.push(card);
+	}
 	
 	// ACTION CARD
 	if (card.type === "ActionCard") {
-		player.actions.push(card);
-		if (actionQueue) {
-			actionQueue.push(card);
-			return "ok";
-		}
-		
+		//player.actions.push(card);
+		discard_deck.push(card);
 		return await resolveActionCard(card, deck, player, players, rl, discard_deck);
-	}
-
-	if (card.type === "ModifierCard" ) {
-		player.modif.push(card);
 	}
 
 	return "ok";
@@ -125,11 +122,9 @@ async function drawCard(deck, player, discard_deck, players, rl, actionQueue = n
 
 async function resolveActionCard(card, deck, player, players, rl, discard_deck) {
 
-	discard_deck.push(card);
-
 	if (card.action === "freeze") {
 		console.log("freeeeeeeeze")
-		freezeCard(player)
+		freezeCard(player, discard_deck)
 		return "busted"
 	}
 	else if (card.action === "flip three"){
@@ -153,20 +148,15 @@ function shuffleDeck(deck) {
 function resetPlayerForNewTurn(player) {
   	player.hand = [];
 	player.modif = [];
-	player.action = [];
+	player.actions = [];
   	player.busted = false;
 	player.success = false;
 }
 
 function isTurnFinished(player) {
 	if (player.busted) return true;
-	let i = 0
-	for (const card of player.hand) {
-		if (card.type === "NumberCard") {
-			i = i + 1
-		}
-	}
-	return i === 7
+	if (player.hand.length === 7) return true;
+	return false;
 }
 
 function computeRoundScore(player) {
@@ -176,20 +166,17 @@ function computeRoundScore(player) {
 	for (const card of player.hand) {
 		sum += card.value;
 	}
-	for (const card of player.hand) {
-		if (card.type === "ModifierCard") {
-			switch (card.operation) {
-				case "+":
-					sum += card.value;
-					break;
-				case "x":
-					sum *= card.value;
-					break;
-				default:
-					console.log("Unknown modifier card:", card);
-			}
+	for (const card of player.modif) {
+		switch (card.operation) {
+			case "+":
+				sum += card.value;
+				break;
+			case "x":
+				sum *= card.value;
+				break;
+			default:
+				console.log("Unknown modifier card:", card);
 		}
-		
 	}
 	
 	if (player.success) {
@@ -211,7 +198,7 @@ function discard(discard_deck, players){
 	for (const player of players) {
 		for (const card of player.hand) discard_deck.push(card)
 		for (const modifCard of player.modif) discard_deck.push(modifCard)
-		for (const actionCard of player.actions) discard_deck.push(actionCard)
+		//for (const actionCard of player.actions) discard_deck.push(actionCard)
 	}
 }
 
@@ -306,24 +293,19 @@ function startGame(players, deck, rl, discard_deck) {
 	let roundIndex = 1;
 
 	function nextRound() {
-		if (players.some(p => p.points >= 200)){
-			console.log("Game finished");
-			rl.close();
-			return;
-		}
-
 		console.log(`Round ${roundIndex}`);
 		gameRound(players, deck, rl, () => {
 			for (const player of players) {
 				const sum = computeRoundScore(player);
 				player.points += sum;
-				console.log("Player", player.ID, "got", sum, "points. Total:", player.points)
+				console.log("Player", player.ID, "got", sum, "points. Total:", player.points, ".");
 			}
 			discard(discard_deck, players);
 			record("game_records.txt", roundIndex, deck, discard_deck, players);
 			const winner = getWinner(players);
 			if (winner) {
-				console.log("Winner:", winner.ID);
+				console.log("=== Game Over ===");
+				console.log("Winner:", winner.ID, "with", winner.points, "points");
 				rl.close();
 				return;
 			}
