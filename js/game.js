@@ -3,7 +3,7 @@ import ActionCard from "./actionCard.js"
 import ModifierCard from "./modifierCard.js";
 import Player from "./player.js";
 import readline from "readline";
-import fs from 'fs/promises';
+import fs from 'fs';
 import { start } from "repl";
 
 function fillGameDeck() {
@@ -36,6 +36,21 @@ function fillGameDeck() {
 
 function showDeck(deck) {
     deck.forEach(element => console.log(element.toString()));
+}
+
+function deckToString (deck){
+	if (deck.length === 0) {
+		return "empty";
+	}
+	return deck.map(card => card.toString()).join(", ");
+}
+
+// When the player draws a freeze card, will be eliminated of the turn and lose all the accumulated cards / points (for the turn)
+function deckToString (deck){
+	if (deck.length === 0) {
+		return "empty";
+	}
+	return deck.map(card => card.toString()).join(", ");
 }
 
 function freezeCard(player) {
@@ -124,6 +139,8 @@ function shuffleDeck(deck) {
 
 function resetPlayerForNewTurn(player) {
   	player.hand = [];
+	player.modif = [];
+	player.action = [];
   	player.busted = false;
 }
 
@@ -137,7 +154,22 @@ function computeRoundScore(player) {
 	if (player.busted) return 0;
 
 	let sum = 0;
-	for (const card of player.hand) sum += card.value;
+	for (const card of player.hand) {
+		sum += card.value;
+	}
+	for (const modif of player.modif) {
+		switch (modif.operation) {
+			case "+":
+				sum += modif.value;
+				break;
+			case "x":
+				sum *= modif.value;
+				break;
+			default:
+				console.log("Unknown modifier:", modif);
+
+		}
+	}
 	return sum;
 }
 
@@ -154,6 +186,26 @@ function discard (discard_deck, players){
 		for (const card of player.hand) discard_deck.push(card)
 	}
 }
+
+function record(filename, roundIndex, gameDeck, discard_deck, players){
+	let output = "";
+	output += `===== ROUND ${roundIndex} =====\n`;
+
+	output += "Players:\n";
+	for (const p of players) {
+		output += `- Player ${p.ID}: ${p.points} points\n`;
+	}
+
+	output += `Deck remaining: ${gameDeck.length} cards\n`;
+	output += `Discard pile: ${discard_deck.length} cards:\n`;
+	output += deckToString(discard_deck) + "\n\n";
+
+
+	output += "\n";
+
+	fs.appendFileSync(filename, output);
+}
+
 
 function choosePlayer(players, rl) {
 	return new Promise(resolve => {
@@ -173,6 +225,7 @@ async function playerTurn (player, deck, rl, onEnd, players){
 	rl.question("Continue to flip? (y/n)", async (answer) => {
         if (answer === "n") {
 			console.log("Player chooses to stop. Turn ended.");
+            console.log("Hand cards:", player.hand, player.modif);
             onEnd();
             return;
         }
@@ -231,14 +284,15 @@ function startGame(players, deck, rl) {
 				player.points += sum;
 				console.log("Player", player.ID, "got", sum, "points. Total:", player.points)
 			}
-
+			discard(discard_deck, players);
+			record("game_records.txt", roundIndex, deck, discard_deck, players);
 			const winner = getWinner(players);
 			if (winner) {
 				console.log("Winner:", winner.ID);
 				rl.close();
 				return;
 			}
-
+			discard(discard_deck, players);
 			roundIndex ++;
 			nextRound();
 		});
@@ -246,6 +300,7 @@ function startGame(players, deck, rl) {
 
 	nextRound();
 }
+
 
 const gameDeck = fillGameDeck();
 shuffleDeck(gameDeck);
