@@ -59,11 +59,19 @@ function flipThree(deck, player) {
 		if (isTurnFinished(player)) {
 			return;
     	}
-        const card = drawCard(deck, player);
+        const card = drawCard(deck, player, discard_deck);
 	}
 }
 
-function drawCard(deck, player){
+function drawCard(deck, player, discard_deck){
+	if (deck.length === 0) {
+		for (const card of discard_deck) {
+			deck.push(card);
+		}
+		shuffleDeck(deck);
+		discard_deck.length = 0;
+	}
+
 	const card = deck.pop();
 	console.log("Player ", player.ID, " gets ", card.toString());
 	if (card.type === "NumberCard") {
@@ -123,6 +131,14 @@ function getWinner(players) {
 	}
 }
 
+function discard (discard_deck, players){
+	for (const player of players) {
+		for (const card of player.hand) {
+			discard_deck.push(card)
+		}
+	}
+}
+
 function playerTurn(player, deck, rl, onEnd) {
 	if (isTurnFinished(player)) {
 		onEnd();
@@ -137,7 +153,7 @@ function playerTurn(player, deck, rl, onEnd) {
             return;
         }
 	
-		const card = drawCard(deck, player);
+		const card = drawCard(deck, player, discard_deck);
 
 		if (isTurnFinished(player)) {
 			if (player.busted) {
@@ -178,16 +194,10 @@ function gameRound(players, deck, rl, onRoundEnd) {
 	nextPlayer();
 }
 
-function startGame(players, deck, rl) {
+function startGame(players, deck, rl, discard_deck) {
 	let roundIndex = 1;
 
 	function nextRound() {
-		if (players.some(p => p.points >= 200)){
-			console.log("Game finished");
-			rl.close();
-			return;
-		}
-
 		console.log(`Round ${roundIndex}`);
 		gameRound(players, deck, rl, () => {
 			for (const player of players) {
@@ -202,6 +212,7 @@ function startGame(players, deck, rl) {
 				rl.close();
 				return;
 			}
+			discard(discard_deck, players);
 			roundIndex ++;
 			nextRound();
 		});
@@ -219,6 +230,7 @@ const saveTurnToFile = async (filename, gameDeck, discardPile, playerPoints) => 
 }
 
 const gameDeck = fillGameDeck();
+const discard_deck = [];
 shuffleDeck(gameDeck);
 showDeck(gameDeck);
 const rl = readline.createInterface({
@@ -228,7 +240,7 @@ const rl = readline.createInterface({
 const player1 = new Player("P1");
 const player2 = new Player("P2");
 const players = [player1, player2];
-startGame(players, gameDeck, rl);
+startGame(players, gameDeck, rl, discard_deck);
 saveTurnToFile("data.txt", gameDeck, [], [123, 44]).then(filename => {
     console.log("-- Turn data saved in: ", filename);
 }).catch(console.error)
