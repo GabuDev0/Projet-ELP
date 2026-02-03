@@ -73,15 +73,15 @@ async function flipThree(deck, player, players, rl, discard_deck) {
 		for (const card of player.actions) {
 			playerChosen.hand.push(card);
 		}
-		player.actions = []
+		//player.actions = []
 		return "busted";
 	}
 
 	// resolve all action cards if the player isn't busted
-	for (const actionCard of player.actions) {
-		const result = await resolveActionCard(actionCard, deck, player, players, rl, discard_deck);
-		if(result === "busted") return "busted";
-	}
+	// for (const actionCard of player.actions) {
+	// 	const result = await resolveActionCard(actionCard, deck, player, players, rl, discard_deck);
+	// 	if(result === "busted") return "busted";
+	// }
 
 	return "ok";
 }
@@ -117,7 +117,7 @@ async function drawCard(deck, player, discard_deck, players, rl){
 	if (card.type === "ActionCard") {
 		discard_deck.push(card);
 		//player.actions.push(card);
-		console.log("*** player.actions: ", player.actions)
+		//console.log("*** player.actions: ", player.actions)
 		return await resolveActionCard(card, deck, player, players, rl, discard_deck);
 	}
 
