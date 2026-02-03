@@ -283,23 +283,23 @@ func detectMajorKey(notes []string) string {
 func main() {
 	start := time.Now()
 	pitchClasses := map[string][]int{
-		"C":  {1},
-		"C#": {2},
-		"D":  {3},
-		"D#": {4},
-		"E":  {5},
-		"F":  {6},
-		"F#": {7},
-		"G":  {8},
-		"G#": {9},
-		"A":  {10},
-		"A#": {11},
-		"B":  {12},
+		"C":  {0},
+		"C#": {1},
+		"D":  {2},
+		"D#": {3},
+		"E":  {4},
+		"F":  {5},
+		"F#": {6},
+		"G":  {7},
+		"G#": {8},
+		"A":  {9},
+		"A#": {10},
+		"B":  {11},
 	}
 
 	// The input file
-	file_path := "example-files/a-tender-feeling-piano-torby-brand.mp3"
-	//file_path := "example-files/scale_piano_C_maj.wav"
+	//file_path := "example-files/a-tender-feeling-piano-torby-brand.mp3"
+	file_path := "example-files/scale_piano_C_maj.wav"
 
 	songSamplesFloat := transformFileToSample(file_path)
 
