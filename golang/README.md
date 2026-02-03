@@ -20,3 +20,11 @@ Current progress:
 - [x] Can intercorrelate the input with a chosen note
 - [x] Can calculate the most used notes of the input
 - [x] Can deduce from the most used notes the tonality of the input
+
+Optimization ideas:
+- Getting one note's samples loops through the whole note file.
+Potential time optimization: 12 times faster (as the file contains 12 notes)
+- Instead of using a file containing 0.25s of one particular note, use a sine table with one period of a sine wav freq modulated, or multiple tabs containing one period of a sine wav.
+Potential time optimization: samples from notes of 0.25s divided by samples from sine waves of minimum 440Hz (arbitrary value chosen for relevant ranges) => ~100 times faster
+- When doing parallel intercorrelations, there are overlapping values that has to be added for the result to be correct. Those overlapping values are computed multiple times (once per job, thus twice)
+Potential time optimization: negligible compared to the methods above
