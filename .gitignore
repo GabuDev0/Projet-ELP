@@ -3,4 +3,3 @@ golang/debug_examples/
 .DS_STORE
 /elm/elm-stuff
 js/*.txt
-/golang/results.csv
