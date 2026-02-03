@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io"
 	"os"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
+
 	"github.com/youpy/go-wav"
 )
 
@@ -29,11 +32,51 @@ type NoteValue struct {
 	value float64
 }
 
-func exeTime(name string) func() {
-	start := time.Now()
-	return func() {
-		fmt.Printf("%s execution time: %v\n", name, time.Since(start))
+const NUM_WORKERS = 8
+const SAMPLES_PER_JOB = 2048
+
+func appendCSV(filename string, numWorkers int, samplesPerJob int, execTime time.Duration) error {
+	file, err := os.OpenFile("results.csv", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return err
 	}
+	defer file.Close()
+
+	// Vérifie si le fichier est vide → écrire le header
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	writer := csv.NewWriter(file)
+
+	if info.Size() == 0 {
+		header := []string{
+			"filename",
+			"NUM_WORKERS",
+			"SAMPLES_PER_JOB",
+			"execTime_ms",
+		}
+		if err := writer.Write(header); err != nil {
+			return err
+		}
+	}
+
+	// Ligne de données
+	record := []string{
+		filename,
+		strconv.Itoa(numWorkers),
+		strconv.Itoa(samplesPerJob),
+		execTime.String(),
+	}
+
+	if err := writer.Write(record); err != nil {
+		return err
+	}
+
+	writer.Flush()
+	fmt.Println("CSV result file appended.")
+	return writer.Error()
 }
 
 // Worker
@@ -64,10 +107,7 @@ func corrEnergy(corr []float64) float64 {
 }
 
 func parallelIntercorr(songSamplesFloat []float64, note int) []float64 {
-	defer exeTime("parallelIntercorr")()
-
-	const NUM_WORKERS = 8
-	const SAMPLES_PER_JOB = 2048
+	start := time.Now()
 
 	jobs := make(chan Job)
 	results := make(chan Result, NUM_WORKERS)
@@ -144,6 +184,8 @@ func parallelIntercorr(songSamplesFloat []float64, note int) []float64 {
 		}
 	}
 
+	fmt.Printf("%s execution time: %v\n", "parallelIntercorr", time.Since(start))
+
 	return intercorrTotal
 }
 
@@ -190,26 +232,24 @@ func getMostUsedNotes(noteEnergyDic map[string]float64) []string {
 		fmt.Println(noteValue.note)
 	}
 
-	
 	return diatonicScale
 }
 
 func detectMajorKey(notes []string) string {
 	var majorScales = map[string][]string{
-	"C":  {"C", "D", "E", "F", "G", "A", "B"},
-	"C#":  {"C#", "D#", "F", "F#", "G#", "A#", "C"},
-	"D":  {"D", "E", "F#", "G", "A", "B", "C#"},
-	"D#":  {"D#", "F", "G", "G#", "A#", "C", "D"},
-	"E":  {"E", "F#", "G#", "A", "B", "C#", "D#"},
-	"F":  {"F", "G", "A", "A#", "C", "D", "E"},
-	"F#": {"F#", "G#", "A#", "B", "C#", "D#", "F"},
-	"G": {"G", "A", "B", "C", "D", "E", "F#"},
-	"G#": {"G#", "A#", "C", "C#", "D#", "F", "G"},
-	"A": {"A", "B", "C#", "D", "E", "F#", "G#"},
-	"A#": {"A#", "C", "D", "D#", "F", "G", "A"},
-	"B":  {"B", "C#", "D#", "E", "F#", "G#", "A#"},
+		"C":  {"C", "D", "E", "F", "G", "A", "B"},
+		"C#": {"C#", "D#", "F", "F#", "G#", "A#", "C"},
+		"D":  {"D", "E", "F#", "G", "A", "B", "C#"},
+		"D#": {"D#", "F", "G", "G#", "A#", "C", "D"},
+		"E":  {"E", "F#", "G#", "A", "B", "C#", "D#"},
+		"F":  {"F", "G", "A", "A#", "C", "D", "E"},
+		"F#": {"F#", "G#", "A#", "B", "C#", "D#", "F"},
+		"G":  {"G", "A", "B", "C", "D", "E", "F#"},
+		"G#": {"G#", "A#", "C", "C#", "D#", "F", "G"},
+		"A":  {"A", "B", "C#", "D", "E", "F#", "G#"},
+		"A#": {"A#", "C", "D", "D#", "F", "G", "A"},
+		"B":  {"B", "C#", "D#", "E", "F#", "G#", "A#"},
 	}
-
 
 	noteSet := make(map[string]bool)
 	for _, n := range notes {
@@ -241,25 +281,25 @@ func detectMajorKey(notes []string) string {
 }
 
 func main() {
-	defer exeTime("main")()
+	start := time.Now()
 	pitchClasses := map[string][]int{
-		"C":  {48, 60, 72},
-		"C#": {49, 61, 73},
-		"D":  {50, 62, 74},
-		"D#": {51, 63, 75},
-		"E":  {52, 64, 76},
-		"F":  {53, 65, 77},
-		"F#": {54, 66, 78},
-		"G":  {55, 67, 79},
-		"G#": {56, 68, 80},
-		"A":  {57, 69, 81},
-		"A#": {58, 70, 82},
-		"B":  {59, 71, 83},
+		"C":  {1},
+		"C#": {2},
+		"D":  {3},
+		"D#": {4},
+		"E":  {5},
+		"F":  {6},
+		"F#": {7},
+		"G":  {8},
+		"G#": {9},
+		"A":  {10},
+		"A#": {11},
+		"B":  {12},
 	}
 
 	//file_path := "example-files/a-tender-feeling-piano-torby-brand.mp3"
 	file_path := "example-files/scale_piano_C_maj.wav"
-	
+
 	songSamplesFloat := transformFileToSample(file_path)
 
 	//Store the energy of every pitch class in pcEnergy
@@ -276,25 +316,17 @@ func main() {
 		}
 		pcEnergy[pc] = maxEnergy
 	}
+	
 
 	fmt.Println("Pitch class energies:")
 	for pc, eng := range pcEnergy {
 		fmt.Println(pc, ":", eng)
 	}
-
+	fmt.Printf("Major scale used: ")
 	fmt.Println(detectMajorKey(getMostUsedNotes(pcEnergy)))
 
-	//Example: energy of C#4
-	//intercorrTotal := parallelIntercorr(songSamplesFloat, 61)
+	execTime := time.Since(start)
+	fmt.Printf("%s execution time: %v\n", "main", execTime)
 
-	//energy61 := corrEnergy(intercorrTotal)
-	//fmt.Println("Energy of note 61:", energy61)
-
-	//Test of incorrelation in one go
-	//noteSamplesFloat := GetNoteSamples(61)
-
-	//intercorr := intercorrelation(songSamplesFloat, noteSamplesFloat)
-
-	//plotFloats(intercorr, "intercorrPlot61piano.jpg")
-	//plotFloats(intercorrTotal, "intercorrPlot61piano2.jpg")
+	appendCSV(file_path, NUM_WORKERS, SAMPLES_PER_JOB, execTime)
 }

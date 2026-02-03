@@ -8,12 +8,12 @@ import (
 )
 const SAMPLESNUM int = 0
 
-// note: int; ranges C0-B10 = 0-130
-// Returns a slice containing 0.25 seconds of samples (1 note) from every_sin_notes.wav
+// note: int; ranges C->B = 0-11
+// Returns a slice containing 0.25 seconds of samples (1 note) from everyOctaveStacked.wav
 func GetNoteSamples(note int) []float64 {
-	FILENAME := "every_sin_notes.wav"
+	FILENAME := "everyOctaveStacked.wav"
 
-	// Cut the "every_sin_notes.wav" file into a note of 0.25s
+	// Cut the file into one note of 0.25s
 	var res []float64
 
 	// 0.25 seconds per note, multiplied by 44.1kHz
